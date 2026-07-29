@@ -2,8 +2,12 @@ from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
 from app.core.dependencies import get_db, get_current_user
 from app.models.user import User
-from app.models.accessibility import AccessibilityProfile
-from app.schemas.accessibility import AccessibilityProfileCreate, AccessibilityProfileUpdate, AccessibilityProfileResponse
+from app.models.accessibility import AccessibilityProfile, get_defaults_for_category
+from app.schemas.accessibility import (
+    AccessibilityProfileCreate,
+    AccessibilityProfileUpdate,
+    AccessibilityProfileResponse,
+)
 
 router = APIRouter(prefix="/accessibility", tags=["Accessibility"])
 
@@ -51,7 +55,13 @@ def create_profile(
     existing = db.query(AccessibilityProfile).filter(AccessibilityProfile.user_id == current_user.id).first()
     if existing:
         raise HTTPException(status_code=409, detail="Profile already exists")
-    profile = AccessibilityProfile(user_id=current_user.id, **payload.model_dump())
+    data = payload.model_dump()
+    category = data.get("disability_category", "standard")
+    defaults = get_defaults_for_category(category)
+    for key, value in defaults.items():
+        if key not in data or not data[key]:
+            data[key] = value
+    profile = AccessibilityProfile(user_id=current_user.id, **data)
     db.add(profile)
     db.commit()
     db.refresh(profile)

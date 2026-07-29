@@ -43,6 +43,13 @@
     transition-duration: 0.01ms !important;
   }
 
+  .animations-off *,
+  .animations-off *::before,
+  .animations-off *::after {
+    animation: none !important;
+    transition: none !important;
+  }
+
   .large-buttons button,
   .large-buttons a[role='button'],
   .large-buttons [type='button'],
@@ -53,6 +60,33 @@
   .simplified-layout .complex-grid,
   .simplified-layout [data-complex] {
     display: none;
+  }
+
+  .keyboard-nav *:focus {
+    @apply outline-2 outline-offset-2 outline-blue-500;
+    outline-style: solid;
+  }
+
+  .keyboard-nav a:focus,
+  .keyboard-nav button:focus,
+  .keyboard-nav input:focus,
+  .keyboard-nav select:focus,
+  .keyboard-nav textarea:focus {
+    @apply ring-2 ring-blue-500 ring-offset-2;
+  }
+
+  .screen-reader-support {
+    speak: auto;
+    -webkit-speak: auto;
+  }
+
+  .screen-reader-support [aria-hidden='true'] {
+    display: none;
+  }
+
+  .screen-reader-support img:not([alt]) {
+    outline: 3px solid red;
+    outline-offset: 2px;
   }
 
   .sr-only {
