@@ -23,6 +23,10 @@ import ResetPassword from '@/pages/ResetPassword'
 import StandardLogin from '@/pages/StandardLogin'
 import VoiceAssistedLogin from '@/pages/VoiceAssistedLogin'
 import VoiceAssistanceDialog from '@/pages/VoiceAssistanceDialog'
+import AuthMagicLink from '@/pages/AuthMagicLink'
+import AuthMagicVerify from '@/pages/AuthMagicVerify'
+import AuthGoogle from '@/pages/AuthGoogle'
+import AuthGoogleCallback from '@/pages/AuthGoogleCallback'
 import CreateAccount from '@/pages/CreateAccount'
 import AccessibilitySettings from '@/pages/AccessibilitySettings'
 import AccessibilityDashboard from '@/pages/AccessibilityDashboard'
@@ -67,6 +71,13 @@ export default function App() {
               <Route element={<AuthLayout />}>
                 <Route path="/auth/standard-login" element={<Login />} />
                 <Route path="/auth/standard-register" element={<Register />} />
+                <Route path="/auth/magic-link" element={<AuthMagicLink />} />
+                <Route path="/auth/magic" element={<AuthMagicVerify />} />
+                <Route path="/auth/google" element={<AuthGoogle />} />
+                <Route
+                  path="/auth/google/callback"
+                  element={<AuthGoogleCallback />}
+                />
                 <Route path="/forgot-password" element={<ForgotPassword />} />
                 <Route path="/reset-password" element={<ResetPassword />} />
               </Route>

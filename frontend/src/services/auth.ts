@@ -66,4 +66,29 @@ export const authService = {
     )
     return data
   },
+
+  async sendMagicLink(
+    email: string
+  ): Promise<{ message: string; dev_link?: string }> {
+    const { data } = await api.post<{ message: string; dev_link?: string }>(
+      '/auth/magic-link',
+      { email }
+    )
+    return data
+  },
+
+  async verifyMagicLink(token: string): Promise<AuthResponse> {
+    const { data } = await api.post<AuthResponse>('/auth/magic-link/verify', {
+      token,
+    })
+    return data
+  },
+
+  async googleAuth(code: string, redirectUri: string): Promise<AuthResponse> {
+    const { data } = await api.post<AuthResponse>('/auth/google', {
+      code,
+      redirect_uri: redirectUri,
+    })
+    return data
+  },
 }
