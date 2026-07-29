@@ -11,6 +11,13 @@ class ProductBase(BaseModel):
     category_id: str | None = None
     tags: list[str] = []
     stock: int = 0
+    brand: str = ""
+    original_price: float | None = None
+    is_new: bool = False
+    discount: float = 0.0
+    delivery: str = "Free Delivery"
+    specifications: dict[str, str] = {}
+    features: list[str] = []
 
 
 class ProductCreate(ProductBase):
@@ -26,6 +33,13 @@ class ProductUpdate(BaseModel):
     category_id: str | None = None
     tags: list[str] | None = None
     stock: int | None = None
+    brand: str | None = None
+    original_price: float | None = None
+    is_new: bool | None = None
+    discount: float | None = None
+    delivery: str | None = None
+    specifications: dict[str, str] | None = None
+    features: list[str] | None = None
 
 
 class ProductResponse(ProductBase):
@@ -34,6 +48,9 @@ class ProductResponse(ProductBase):
     rating: float
     created_at: datetime
     updated_at: datetime
+    review_count: int = 0
+    category_name: str | None = None
+    category_slug: str | None = None
 
     class Config:
         from_attributes = True

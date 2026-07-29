@@ -1,6 +1,6 @@
 import uuid
 from datetime import datetime, timezone
-from sqlalchemy import Column, String, Float, Integer, DateTime, Text, ForeignKey, JSON
+from sqlalchemy import Column, String, Float, Integer, DateTime, Text, ForeignKey, JSON, Boolean
 from sqlalchemy.orm import relationship
 from app.database.base import Base
 
@@ -19,6 +19,15 @@ class Product(Base):
     tags = Column(JSON, default=list)
     stock = Column(Integer, default=0, nullable=False)
     rating = Column(Float, default=0.0)
+
+    brand = Column(String, default="")
+    original_price = Column(Float, nullable=True)
+    is_new = Column(Boolean, default=False)
+    discount = Column(Float, default=0.0)
+    delivery = Column(String, default="Free Delivery")
+    specifications = Column(JSON, default=dict)
+    features = Column(JSON, default=list)
+
     created_at = Column(DateTime(timezone=True), default=lambda: datetime.now(timezone.utc))
     updated_at = Column(
         DateTime(timezone=True),

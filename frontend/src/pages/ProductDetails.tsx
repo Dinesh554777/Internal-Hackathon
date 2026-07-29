@@ -16,11 +16,7 @@ import {
 import Ratings from '@/components/Ratings'
 import ProductGrid from '@/components/ProductGrid'
 import { Badge } from '@/components/ui/badge'
-import {
-  getProductById,
-  getRelatedProducts,
-  products,
-} from '@/constants/mockData'
+import { useProduct, useRelatedProducts } from '@/hooks/useProducts'
 import { useCartStore } from '@/store/cartStore'
 import { useWishlistStore } from '@/store/wishlistStore'
 import { useAuthStore } from '@/store/authStore'
@@ -43,8 +39,19 @@ export default function ProductDetails() {
   >('description')
   const [addedToCart, setAddedToCart] = useState(false)
 
-  const product = getProductById(id || '')
-  const related = id ? getRelatedProducts(id) : []
+  const { data: product, isLoading } = useProduct(id || '')
+  const { data: related = [] } = useRelatedProducts(id || '')
+
+  if (isLoading) {
+    return (
+      <div className="flex min-h-[60vh] items-center justify-center">
+        <div className="text-center">
+          <div className="mx-auto h-8 w-8 animate-spin rounded-full border-4 border-blue-500 border-t-transparent" />
+          <p className="mt-4 text-sm text-zinc-500">Loading product...</p>
+        </div>
+      </div>
+    )
+  }
 
   if (!product) {
     return (
@@ -63,7 +70,8 @@ export default function ProductDetails() {
   }
 
   const inWishlist = isInWishlist(product.id)
-  const discount = product.discount > 0
+  const discount = (product.discount ?? 0) > 0
+  const features = product.features ?? []
 
   const handleAddToCart = () => {
     addToCart(product, quantity)
@@ -80,9 +88,7 @@ export default function ProductDetails() {
     else addWishlist(product)
   }
 
-  const wishlistIds = products
-    .filter((p) => isInWishlist(p.id))
-    .map((p) => p.id)
+  const wishlistIds = related.filter((p) => isInWishlist(p.id)).map((p) => p.id)
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-zinc-50 to-zinc-100 dark:from-zinc-950 dark:to-zinc-900">
@@ -170,9 +176,11 @@ export default function ProductDetails() {
           </div>
 
           <div className="flex flex-col">
-            <p className="text-xs font-medium uppercase tracking-wider text-blue-600 dark:text-blue-400">
-              {product.brand}
-            </p>
+            {product.brand && (
+              <p className="text-xs font-medium uppercase tracking-wider text-blue-600 dark:text-blue-400">
+                {product.brand}
+              </p>
+            )}
             <h1 className="mt-1 text-2xl font-bold text-zinc-900 dark:text-zinc-100 lg:text-3xl">
               {product.name}
             </h1>
@@ -189,7 +197,7 @@ export default function ProductDetails() {
               <span className="text-3xl font-bold text-zinc-900 dark:text-zinc-100">
                 ${product.price.toFixed(2)}
               </span>
-              {discount && (
+              {discount && product.originalPrice && (
                 <>
                   <span className="text-lg text-zinc-400 line-through">
                     ${product.originalPrice.toFixed(2)}
@@ -210,16 +218,18 @@ export default function ProductDetails() {
                   ? `In Stock (${product.stock})`
                   : 'Out of Stock'}
               </span>
-              <span className="text-zinc-400">{product.delivery}</span>
+              <span className="text-zinc-400">
+                {product.delivery || 'Free Delivery'}
+              </span>
             </div>
 
             <p className="mt-4 text-sm leading-relaxed text-zinc-600 dark:text-zinc-400">
               {product.description}
             </p>
 
-            {product.features?.length > 0 && (
+            {features.length > 0 && (
               <ul className="mt-4 space-y-1.5">
-                {product.features.slice(0, 4).map((f, i) => (
+                {features.slice(0, 4).map((f, i) => (
                   <li
                     key={i}
                     className="flex items-start gap-2 text-sm text-zinc-600 dark:text-zinc-400"
@@ -361,13 +371,13 @@ export default function ProductDetails() {
                 <p className="text-sm leading-relaxed text-zinc-600 dark:text-zinc-400">
                   {product.description}
                 </p>
-                {product.features?.length > 0 && (
+                {features.length > 0 && (
                   <div className="mt-4">
                     <h4 className="mb-3 text-sm font-semibold text-zinc-900 dark:text-zinc-100">
                       Key Features
                     </h4>
                     <ul className="grid gap-2 sm:grid-cols-2">
-                      {product.features.map((f, i) => (
+                      {features.map((f, i) => (
                         <li
                           key={i}
                           className="flex items-center gap-2 rounded-lg bg-zinc-50 px-4 py-2 text-sm text-zinc-600 dark:bg-zinc-800/50 dark:text-zinc-400"
@@ -389,21 +399,28 @@ export default function ProductDetails() {
                 exit={{ opacity: 0 }}
                 className="py-6"
               >
-                <div className="grid gap-3 sm:grid-cols-2">
-                  {Object.entries(product.specifications).map(
-                    ([key, value]) => (
-                      <div
-                        key={key}
-                        className="flex items-center justify-between rounded-lg border border-zinc-200/50 bg-white/60 px-4 py-3 dark:border-zinc-800/50 dark:bg-zinc-900/60"
-                      >
-                        <span className="text-sm text-zinc-500">{key}</span>
-                        <span className="text-sm font-medium text-zinc-900 dark:text-zinc-100">
-                          {value}
-                        </span>
-                      </div>
-                    )
-                  )}
-                </div>
+                {product.specifications &&
+                Object.keys(product.specifications).length > 0 ? (
+                  <div className="grid gap-3 sm:grid-cols-2">
+                    {Object.entries(product.specifications).map(
+                      ([key, value]) => (
+                        <div
+                          key={key}
+                          className="flex items-center justify-between rounded-lg border border-zinc-200/50 bg-white/60 px-4 py-3 dark:border-zinc-800/50 dark:bg-zinc-900/60"
+                        >
+                          <span className="text-sm text-zinc-500">{key}</span>
+                          <span className="text-sm font-medium text-zinc-900 dark:text-zinc-100">
+                            {value}
+                          </span>
+                        </div>
+                      )
+                    )}
+                  </div>
+                ) : (
+                  <p className="py-6 text-center text-sm text-zinc-400">
+                    No specifications available.
+                  </p>
+                )}
               </motion.div>
             )}
             {activeTab === 'reviews' && (

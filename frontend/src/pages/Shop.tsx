@@ -4,10 +4,10 @@ import { motion } from 'framer-motion'
 import { SlidersHorizontal, X } from 'lucide-react'
 import ProductGrid from '@/components/ProductGrid'
 import Ratings from '@/components/Ratings'
-import { products, brands, categories } from '@/constants/mockData'
 import { useAuthStore } from '@/store/authStore'
 import { useWishlistStore } from '@/store/wishlistStore'
-import type { ExtendedProduct } from '@/constants/mockData'
+import { useProducts } from '@/hooks/useProducts'
+import { useCategories } from '@/hooks/useCategories'
 
 const SORT_OPTIONS = [
   { value: 'newest', label: 'Newest' },
@@ -15,8 +15,15 @@ const SORT_OPTIONS = [
   { value: 'price-low', label: 'Price: Low to High' },
   { value: 'price-high', label: 'Price: High to Low' },
   { value: 'rating', label: 'Highest Rated' },
-  { value: 'discount', label: 'Biggest Discount' },
 ]
+
+const sortParamToApi: Record<string, string> = {
+  newest: 'newest',
+  popular: 'rating',
+  'price-low': 'price_asc',
+  'price-high': 'price_desc',
+  rating: 'rating',
+}
 
 export default function Shop() {
   const [searchParams, setSearchParams] = useSearchParams()
@@ -28,10 +35,33 @@ export default function Shop() {
   const sortParam = searchParams.get('sort') || 'popular'
   const searchQuery = searchParams.get('q') || ''
   const minPrice = Number(searchParams.get('minPrice')) || 0
-  const maxPrice = Number(searchParams.get('maxPrice')) || 10000
-  const selectedBrands =
-    searchParams.get('brands')?.split(',').filter(Boolean) || []
+  const maxPrice = Number(searchParams.get('maxPrice')) || 0
   const minRating = Number(searchParams.get('minRating')) || 0
+
+  const { data: categoriesData = [] } = useCategories()
+
+  const apiParams = useMemo(
+    () => ({
+      sort_by: sortParamToApi[sortParam] || 'newest',
+      search: searchQuery || undefined,
+      category_id: categoryParam || undefined,
+      min_price: minPrice > 0 ? minPrice : undefined,
+      max_price: maxPrice > 0 ? maxPrice : undefined,
+      min_rating: minRating > 0 ? minRating : undefined,
+      limit: 50,
+    }),
+    [sortParam, searchQuery, categoryParam, minPrice, maxPrice, minRating]
+  )
+
+  const { data: productsData, isLoading } = useProducts(apiParams)
+
+  const products = productsData?.data ?? []
+  const brands = useMemo(
+    () => [
+      ...new Set(products.map((p) => p.brand).filter((b): b is string => !!b)),
+    ],
+    [products]
+  )
 
   const updateParam = (key: string, value: string) => {
     const params = new URLSearchParams(searchParams)
@@ -39,70 +69,6 @@ export default function Shop() {
     else params.delete(key)
     setSearchParams(params)
   }
-
-  const toggleBrand = (brand: string) => {
-    const current = new Set(selectedBrands)
-    if (current.has(brand)) current.delete(brand)
-    else current.add(brand)
-    updateParam('brands', [...current].join(','))
-  }
-
-  const filtered = useMemo(() => {
-    let result = [...products] as ExtendedProduct[]
-
-    if (categoryParam) {
-      result = result.filter((p) => p.category_slug === categoryParam)
-    }
-    if (searchQuery) {
-      const q = searchQuery.toLowerCase()
-      result = result.filter(
-        (p) =>
-          p.name.toLowerCase().includes(q) ||
-          p.brand.toLowerCase().includes(q) ||
-          p.tags.some((t) => t.toLowerCase().includes(q))
-      )
-    }
-    result = result.filter((p) => p.price >= minPrice && p.price <= maxPrice)
-    if (selectedBrands.length > 0) {
-      result = result.filter((p) => selectedBrands.includes(p.brand))
-    }
-    if (minRating > 0) {
-      result = result.filter((p) => p.rating >= minRating)
-    }
-
-    switch (sortParam) {
-      case 'newest':
-        result.sort(
-          (a, b) =>
-            new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
-        )
-        break
-      case 'popular':
-        result.sort((a, b) => b.review_count - a.review_count)
-        break
-      case 'price-low':
-        result.sort((a, b) => a.price - b.price)
-        break
-      case 'price-high':
-        result.sort((a, b) => b.price - a.price)
-        break
-      case 'rating':
-        result.sort((a, b) => b.rating - a.rating)
-        break
-      case 'discount':
-        result.sort((a, b) => b.discount - a.discount)
-        break
-    }
-    return result
-  }, [
-    categoryParam,
-    sortParam,
-    searchQuery,
-    minPrice,
-    maxPrice,
-    selectedBrands,
-    minRating,
-  ])
 
   const handleToggleWishlist = (productId: string) => {
     if (!isAuthenticated) return
@@ -134,7 +100,7 @@ export default function Shop() {
           >
             All Categories
           </button>
-          {categories.map((cat) => (
+          {categoriesData.map((cat) => (
             <button
               key={cat.id}
               onClick={() => updateParam('category', cat.slug)}
@@ -167,35 +133,11 @@ export default function Shop() {
           <input
             type="number"
             placeholder="Max"
-            value={maxPrice >= 10000 ? '' : maxPrice}
+            value={maxPrice || ''}
             onChange={(e) => updateParam('maxPrice', e.target.value)}
             className="w-full rounded-lg border border-zinc-200 bg-white px-2 py-1.5 text-xs dark:border-zinc-700 dark:bg-zinc-900"
             aria-label="Maximum price"
           />
-        </div>
-      </div>
-
-      <div>
-        <h3 className="mb-3 text-sm font-semibold text-zinc-900 dark:text-zinc-100">
-          Brand
-        </h3>
-        <div className="max-h-48 space-y-1 overflow-y-auto">
-          {brands.map((brand) => (
-            <label
-              key={brand}
-              className="flex items-center gap-2 cursor-pointer"
-            >
-              <input
-                type="checkbox"
-                checked={selectedBrands.includes(brand)}
-                onChange={() => toggleBrand(brand)}
-                className="h-4 w-4 rounded border-zinc-300 text-blue-600 focus:ring-blue-500"
-              />
-              <span className="text-sm text-zinc-600 dark:text-zinc-400">
-                {brand}
-              </span>
-            </label>
-          ))}
         </div>
       </div>
 
@@ -222,6 +164,37 @@ export default function Shop() {
           ))}
         </div>
       </div>
+
+      {brands.length > 0 && (
+        <div>
+          <h3 className="mb-3 text-sm font-semibold text-zinc-900 dark:text-zinc-100">
+            Brand
+          </h3>
+          <div className="max-h-48 space-y-1 overflow-y-auto">
+            {brands.map((brand) => (
+              <label
+                key={brand}
+                className="flex items-center gap-2 cursor-pointer"
+              >
+                <input
+                  type="checkbox"
+                  checked={
+                    searchParams
+                      .get('q')
+                      ?.toLowerCase()
+                      .includes(brand.toLowerCase()) || false
+                  }
+                  onChange={() => updateParam('q', brand)}
+                  className="h-4 w-4 rounded border-zinc-300 text-blue-600 focus:ring-blue-500"
+                />
+                <span className="text-sm text-zinc-600 dark:text-zinc-400">
+                  {brand}
+                </span>
+              </label>
+            ))}
+          </div>
+        </div>
+      )}
     </div>
   )
 
@@ -232,11 +205,11 @@ export default function Shop() {
           <div>
             <h1 className="text-2xl font-bold text-zinc-900 dark:text-zinc-100">
               {categoryParam
-                ? `${categories.find((c) => c.slug === categoryParam)?.name || 'Products'}`
+                ? `${categoriesData.find((c) => c.slug === categoryParam)?.name || 'Products'}`
                 : 'All Products'}
             </h1>
             <p className="mt-1 text-sm text-zinc-500">
-              {filtered.length} products
+              {productsData?.total || 0} products
             </p>
           </div>
           <div className="flex items-center gap-3">
@@ -296,7 +269,8 @@ export default function Shop() {
           <div className="flex-1">
             <motion.div layout>
               <ProductGrid
-                products={filtered}
+                products={products}
+                isLoading={isLoading}
                 wishlistIds={wishlistIds}
                 onToggleWishlist={handleToggleWishlist}
                 emptyMessage={

@@ -1,6 +1,6 @@
 import { Link } from 'react-router-dom'
 import { motion } from 'framer-motion'
-import { categories } from '@/constants/mockData'
+import { useCategories } from '@/hooks/useCategories'
 
 const categoryIcons: Record<string, string> = {
   electronics: '💻',
@@ -21,6 +21,8 @@ const categoryIcons: Record<string, string> = {
 }
 
 export default function CategoryShowcase() {
+  const { data: categories = [] } = useCategories()
+
   return (
     <section>
       <div className="mb-6 flex items-center justify-between">

@@ -1,9 +1,13 @@
 import { Link } from 'react-router-dom'
 import { motion } from 'framer-motion'
 import { Timer, Zap } from 'lucide-react'
-import { flashSales } from '@/constants/mockData'
+import { useFlashSales } from '@/hooks/useProducts'
 
 export default function FlashSale() {
+  const { data: flashSales = [], isLoading } = useFlashSales()
+
+  if (isLoading || flashSales.length === 0) return null
+
   return (
     <section className="rounded-2xl bg-gradient-to-r from-orange-600 via-red-500 to-pink-500 p-0.5">
       <div className="rounded-[calc(1rem-1px)] bg-white p-6 dark:bg-zinc-950">
@@ -59,9 +63,12 @@ export default function FlashSale() {
                   <span className="text-sm font-bold text-zinc-900 dark:text-zinc-100">
                     ${product.price}
                   </span>
-                  <span className="text-xs text-zinc-400 line-through">
-                    ${product.originalPrice}
-                  </span>
+                  {product.originalPrice &&
+                    product.originalPrice > product.price && (
+                      <span className="text-xs text-zinc-400 line-through">
+                        ${product.originalPrice}
+                      </span>
+                    )}
                 </div>
                 <div className="mt-1.5 flex items-center gap-1 text-[10px] text-red-500">
                   <Timer className="h-3 w-3" />

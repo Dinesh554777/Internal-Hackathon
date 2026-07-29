@@ -17,7 +17,7 @@ import DealsSection from '@/components/DealsSection'
 import FlashSale from '@/components/FlashSale'
 import ProductGrid from '@/components/ProductGrid'
 import NewsletterSection from '@/components/NewsletterSection'
-import { bestSellers, newArrivals, products } from '@/constants/mockData'
+import { useBestSellers, useNewArrivals } from '@/hooks/useProducts'
 
 const features = [
   { icon: Truck, title: 'Free Delivery', desc: 'On orders over $50' },
@@ -32,10 +32,18 @@ export default function Home() {
   const { addItem, isInWishlist, removeItem } = useWishlistStore()
   const isAuthenticated = useAuthStore((s) => s.isAuthenticated)
 
+  const { data: bestSellersData, isLoading: bestSellersLoading } =
+    useBestSellers(10)
+  const { data: newArrivalsData, isLoading: newArrivalsLoading } =
+    useNewArrivals(10)
+
+  const bestSellers = bestSellersData?.data ?? []
+  const newArrivals = newArrivalsData?.data ?? []
+
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault()
     if (searchQuery.trim())
-      navigate(`/search?q=${encodeURIComponent(searchQuery.trim())}`)
+      navigate(`/shop?q=${encodeURIComponent(searchQuery.trim())}`)
   }
 
   const handleToggleWishlist = (productId: string) => {
@@ -45,12 +53,12 @@ export default function Home() {
     }
     if (isInWishlist(productId)) removeItem(productId)
     else {
-      const p = products.find((p) => p.id === productId)
+      const p = [...bestSellers, ...newArrivals].find((p) => p.id === productId)
       if (p) addItem(p)
     }
   }
 
-  const wishlistIds = products
+  const wishlistIds = [...bestSellers, ...newArrivals]
     .filter((p) => isInWishlist(p.id))
     .map((p) => p.id)
 
@@ -116,6 +124,7 @@ export default function Home() {
           </div>
           <ProductGrid
             products={bestSellers}
+            isLoading={bestSellersLoading}
             wishlistIds={wishlistIds}
             onToggleWishlist={handleToggleWishlist}
           />
@@ -140,6 +149,7 @@ export default function Home() {
           </div>
           <ProductGrid
             products={newArrivals}
+            isLoading={newArrivalsLoading}
             wishlistIds={wishlistIds}
             onToggleWishlist={handleToggleWishlist}
           />

@@ -2,11 +2,10 @@ import { motion } from 'framer-motion'
 import ProductCard from '@/components/ProductCard'
 import { ProductCardSkeleton } from '@/components/ui/skeleton'
 import { PackageOpen } from 'lucide-react'
-import type { ExtendedProduct } from '@/constants/mockData'
 import type { Product } from '@/types'
 
 interface ProductGridProps {
-  products: (ExtendedProduct | Product)[]
+  products: Product[]
   isLoading?: boolean
   wishlistIds?: string[]
   onToggleWishlist?: (id: string) => void

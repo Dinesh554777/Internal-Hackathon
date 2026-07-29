@@ -15,7 +15,7 @@ import { useCartStore } from '@/store/cartStore'
 import { useAuthStore } from '@/store/authStore'
 import { useAuth } from '@/hooks/useAuth'
 import { ModeToggle } from '@/components/ModeToggle'
-import { searchProducts } from '@/constants/mockData'
+import { useProductSuggestions } from '@/hooks/useProducts'
 
 export default function Header() {
   const navigate = useNavigate()
@@ -27,9 +27,7 @@ export default function Header() {
   const [showSuggestions, setShowSuggestions] = useState(false)
   const searchRef = useRef<HTMLFormElement>(null)
 
-  const suggestions = searchQuery.trim()
-    ? searchProducts(searchQuery).slice(0, 5)
-    : []
+  const { data: suggestions = [] } = useProductSuggestions(searchQuery)
 
   useEffect(() => {
     const handleClick = (e: MouseEvent) => {
@@ -106,28 +104,19 @@ export default function Header() {
               />
               {showSuggestions && suggestions.length > 0 && (
                 <div className="absolute top-full mt-1 w-full rounded-xl border border-zinc-200 bg-white p-2 shadow-lg dark:border-zinc-700 dark:bg-zinc-950">
-                  {suggestions.map((p) => (
+                  {suggestions.map((s, i) => (
                     <button
-                      key={p.id}
+                      key={i}
                       type="button"
                       onClick={() => {
-                        navigate(`/products/${p.id}`)
+                        navigate(`/shop?q=${encodeURIComponent(s)}`)
                         setShowSuggestions(false)
                         setSearchQuery('')
                       }}
-                      className="flex w-full items-center gap-3 rounded-lg px-3 py-2 text-sm text-zinc-600 transition-colors hover:bg-zinc-50 dark:text-zinc-400 dark:hover:bg-zinc-800"
+                      className="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-sm text-zinc-600 transition-colors hover:bg-zinc-50 dark:text-zinc-400 dark:hover:bg-zinc-800"
                     >
-                      <img
-                        src={p.images[0]}
-                        alt=""
-                        className="h-8 w-8 rounded-lg object-cover"
-                      />
-                      <span className="flex-1 text-left truncate">
-                        {p.name}
-                      </span>
-                      <span className="text-xs font-medium text-zinc-900 dark:text-zinc-100">
-                        ${p.price}
-                      </span>
+                      <Search className="h-3.5 w-3.5 text-zinc-400" />
+                      <span>{s}</span>
                     </button>
                   ))}
                 </div>
