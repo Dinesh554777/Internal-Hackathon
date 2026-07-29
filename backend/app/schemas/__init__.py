@@ -7,6 +7,7 @@ from app.schemas.review import ReviewCreate, ReviewResponse, ReviewUpdate
 from app.schemas.wishlist import WishlistItemResponse
 from app.schemas.auth import LoginRequest, TokenResponse, RegisterRequest
 from app.schemas.accessibility import AccessibilityProfileCreate, AccessibilityProfileUpdate, AccessibilityProfileResponse
+from app.schemas.voice import VoiceProcessRequest, VoiceProcessResponse
 
 __all__ = [
     "UserCreate", "UserResponse", "UserUpdate",
@@ -18,4 +19,5 @@ __all__ = [
     "WishlistItemResponse",
     "LoginRequest", "TokenResponse", "RegisterRequest",
     "AccessibilityProfileCreate", "AccessibilityProfileUpdate", "AccessibilityProfileResponse",
+    "VoiceProcessRequest", "VoiceProcessResponse",
 ]

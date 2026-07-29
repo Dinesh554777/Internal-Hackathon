@@ -1,189 +1,267 @@
-import { useState, useEffect } from 'react'
+import { useMemo } from 'react'
 import { motion } from 'framer-motion'
-import { useSpeechSynthesis } from '@/hooks/useSpeechSynthesis'
-import { useAccessibility } from '@/context/AccessibilityContext'
+import { useNavigate } from 'react-router-dom'
+import { useVoiceAssistantContext } from '@/context/VoiceAssistantContext'
 import { Button } from '@/components/ui/button'
+import { useAccessibility } from '@/context/AccessibilityContext'
 
-interface VoiceAssistantProps {
-  message?: string
-  onConfirm?: () => void
-  onRetry?: () => void
-  onResponse?: (text: string) => void
-  listening?: boolean
-  transcript?: string
-  captions?: string
-  showActions?: boolean
-}
-
-export default function FloatingVoiceAssistant({
-  message = '',
-  onConfirm,
-  onRetry,
-  onResponse,
-  listening: externalListening,
-  transcript: externalTranscript,
-  captions,
-  showActions = false,
-}: VoiceAssistantProps) {
-  const [isOpen, setIsOpen] = useState(true)
-  const [inputText, setInputText] = useState('')
-  const [showTyping, setShowTyping] = useState(false)
+export default function FloatingVoiceAssistant() {
+  const {
+    state,
+    isMuted,
+    isOpen,
+    transcript,
+    messages,
+    error,
+    lastIntent,
+    startListening,
+    stopListening,
+    toggleMute,
+    close,
+  } = useVoiceAssistantContext()
   const { areCaptionsEnabled } = useAccessibility()
-  const { isSpeaking, isSupported, cancel } = useSpeechSynthesis()
+  const navigate = useNavigate()
 
-  const speakMessage = () => {
-    if (isSupported && message) {
-      const utterance = new SpeechSynthesisUtterance(message)
-      utterance.rate = 0.9
-      window.speechSynthesis.cancel()
-      window.speechSynthesis.speak(utterance)
+  const getDataValue = (key: string): string | number | undefined => {
+    if (!lastIntent?.data) return undefined
+    if (Array.isArray(lastIntent.data)) return undefined
+    return lastIntent.data[key] as string | number | undefined
+  }
+
+  const handleAction = () => {
+    if (!lastIntent?.action) return
+    switch (lastIntent.action) {
+      case 'navigate_home':
+        navigate('/shop')
+        break
+      case 'navigate_cart':
+        navigate('/cart')
+        break
+      case 'navigate_checkout':
+        navigate('/checkout')
+        break
+      case 'navigate_orders':
+        navigate('/orders')
+        break
+      case 'navigate_search': {
+        const q =
+          (getDataValue('query') as string) ||
+          (getDataValue('category') as string) ||
+          ''
+        navigate(`/search?q=${encodeURIComponent(q)}`)
+        break
+      }
+      case 'navigate_product': {
+        const id = getDataValue('id') as string
+        if (id) navigate(`/products/${id}`)
+        break
+      }
     }
   }
 
-  useEffect(() => {
-    if (message && isOpen) {
-      speakMessage()
-    }
-  }, [message, isOpen, speakMessage])
-
-  const handleTypingSubmit = (e: React.FormEvent) => {
-    e.preventDefault()
-    if (inputText.trim() && onResponse) {
-      onResponse(inputText.trim())
-      setInputText('')
-    }
-  }
-
-  const listening = externalListening ?? false
-  const transcript = externalTranscript ?? ''
+  const lastMessage = useMemo(() => messages[messages.length - 1], [messages])
+  const displayText =
+    lastMessage?.role === 'assistant' ? lastMessage.text : transcript
 
   if (!isOpen) return null
 
   return (
     <motion.div
-      initial={{ opacity: 0, y: 50, scale: 0.9 }}
+      initial={{ opacity: 0, y: 20, scale: 0.95 }}
       animate={{ opacity: 1, y: 0, scale: 1 }}
-      exit={{ opacity: 0, y: 50, scale: 0.9 }}
+      exit={{ opacity: 0, y: 20, scale: 0.95 }}
       role="dialog"
-      aria-label="Voice Assistant"
+      aria-label="Voice Shopping Assistant"
       aria-live="polite"
-      className="fixed bottom-6 right-6 z-50 w-80 rounded-2xl border border-zinc-200/50 bg-white/90 p-4 shadow-2xl backdrop-blur-xl dark:border-zinc-800/50 dark:bg-zinc-950/90"
+      className="fixed bottom-6 right-6 z-50 w-72 sm:w-80 rounded-2xl border border-zinc-200/50 bg-white/95 p-4 shadow-2xl backdrop-blur-xl dark:border-zinc-800/50 dark:bg-zinc-950/95"
     >
       <div className="mb-3 flex items-center justify-between">
         <div className="flex items-center gap-2">
-          <span className="flex h-8 w-8 items-center justify-center rounded-full bg-zinc-900 text-sm text-white dark:bg-zinc-50 dark:text-zinc-900">
+          <motion.span
+            animate={state === 'processing' ? { rotate: 360 } : { rotate: 0 }}
+            transition={{
+              repeat: state === 'processing' ? Infinity : 0,
+              duration: 1,
+              ease: 'linear',
+            }}
+            className="flex h-8 w-8 items-center justify-center rounded-full bg-gradient-to-br from-zinc-900 to-zinc-600 text-sm text-white dark:from-zinc-100 dark:to-zinc-400 dark:text-zinc-900"
+          >
             AI
-          </span>
+          </motion.span>
           <span className="text-sm font-medium">Voice Assistant</span>
         </div>
         <div className="flex gap-1">
-          {isSpeaking && (
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={cancel}
-              className="h-7 px-2 text-xs"
-              aria-label="Stop speaking"
-            >
-              Mute
-            </Button>
-          )}
           <button
-            onClick={() => setIsOpen(false)}
+            onClick={toggleMute}
+            className={`flex h-7 w-7 items-center justify-center rounded-full transition-colors ${
+              isMuted
+                ? 'bg-red-100 text-red-500 dark:bg-red-900/30 dark:text-red-400'
+                : 'text-zinc-400 hover:bg-zinc-100 hover:text-zinc-600 dark:hover:bg-zinc-800'
+            }`}
+            aria-label={
+              isMuted ? 'Unmute voice assistant' : 'Mute voice assistant'
+            }
+          >
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              width="14"
+              height="14"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="2"
+            >
+              {isMuted ? (
+                <>
+                  <polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5" />
+                  <line x1="23" y1="9" x2="17" y2="15" />
+                  <line x1="17" y1="9" x2="23" y2="15" />
+                </>
+              ) : (
+                <>
+                  <polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5" />
+                  <path d="M19.07 4.93a10 10 0 0 1 0 14.14" />
+                  <path d="M15.54 8.46a5 5 0 0 1 0 7.07" />
+                </>
+              )}
+            </svg>
+          </button>
+          <button
+            onClick={close}
             className="flex h-7 w-7 items-center justify-center rounded-full text-zinc-400 hover:bg-zinc-100 hover:text-zinc-600 dark:hover:bg-zinc-800"
             aria-label="Close voice assistant"
           >
-            ×
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              width="14"
+              height="14"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="2"
+            >
+              <line x1="18" y1="6" x2="6" y2="18" />
+              <line x1="6" y1="6" x2="18" y2="18" />
+            </svg>
           </button>
         </div>
       </div>
 
-      {listening && (
-        <div className="mb-3 flex items-center gap-2 rounded-lg bg-zinc-50 p-3 dark:bg-zinc-800">
-          <span className="h-3 w-3 animate-pulse rounded-full bg-green-500" />
-          <span className="text-sm text-zinc-600 dark:text-zinc-400">
-            Listening...
-          </span>
-        </div>
-      )}
-
-      {areCaptionsEnabled && (
+      {displayText && (areCaptionsEnabled || state !== 'speaking') && (
         <div className="mb-3 rounded-lg bg-zinc-50 p-3 dark:bg-zinc-800">
           <p
             className="text-sm text-zinc-700 dark:text-zinc-300"
             aria-live="assertive"
           >
-            {captions || transcript || message}
+            {displayText}
           </p>
         </div>
       )}
 
-      {showTyping ? (
-        <form onSubmit={handleTypingSubmit} className="flex gap-2">
-          <input
-            type="text"
-            value={inputText}
-            onChange={(e) => setInputText(e.target.value)}
-            className="min-w-0 flex-1 rounded-lg border border-zinc-200 bg-white px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-zinc-400 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-100"
-            placeholder="Type your response..."
-            aria-label="Type your response"
-            autoFocus
+      {error && (
+        <div className="mb-3 rounded-lg bg-red-50 p-3 dark:bg-red-900/20">
+          <p className="text-sm text-red-600 dark:text-red-400">{error}</p>
+        </div>
+      )}
+
+      {state === 'listening' && (
+        <div className="mb-3 flex items-center gap-2 rounded-lg bg-green-50 p-3 dark:bg-green-900/20">
+          <motion.span
+            animate={{ scale: [1, 1.2, 1] }}
+            transition={{ repeat: Infinity, duration: 1.5 }}
+            className="h-3 w-3 rounded-full bg-green-500"
           />
-          <Button type="submit" size="sm">
-            Send
+          <span className="text-sm text-green-700 dark:text-green-300">
+            Listening...
+          </span>
+        </div>
+      )}
+
+      {state === 'processing' && (
+        <div className="mb-3 flex items-center gap-2 rounded-lg bg-blue-50 p-3 dark:bg-blue-900/20">
+          <svg
+            className="h-4 w-4 animate-spin text-blue-500"
+            xmlns="http://www.w3.org/2000/svg"
+            fill="none"
+            viewBox="0 0 24 24"
+          >
+            <circle
+              className="opacity-25"
+              cx="12"
+              cy="12"
+              r="10"
+              stroke="currentColor"
+              strokeWidth="4"
+            />
+            <path
+              className="opacity-75"
+              fill="currentColor"
+              d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+            />
+          </svg>
+          <span className="text-sm text-blue-700 dark:text-blue-300">
+            Thinking...
+          </span>
+        </div>
+      )}
+
+      <div className="flex gap-2">
+        {state === 'listening' ? (
+          <Button
+            variant="destructive"
+            size="sm"
+            onClick={stopListening}
+            className="flex-1"
+            aria-label="Stop listening"
+          >
+            Stop Listening
           </Button>
-        </form>
-      ) : (
-        <div className="flex gap-2">
+        ) : (
+          <Button
+            size="sm"
+            onClick={startListening}
+            disabled={state === 'processing'}
+            className="flex-1 gap-2"
+            aria-label="Start listening"
+          >
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              width="14"
+              height="14"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="2"
+            >
+              <path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z" />
+              <path d="M19 10v2a7 7 0 0 1-14 0v-2" />
+              <line x1="12" y1="19" x2="12" y2="23" />
+              <line x1="8" y1="23" x2="16" y2="23" />
+            </svg>
+            {state === 'idle' || state === 'speaking' ? 'Start' : 'Start'}
+          </Button>
+        )}
+      </div>
+
+      {lastIntent?.action && lastIntent.action.startsWith('navigate_') && (
+        <div className="mt-2">
           <Button
             variant="ghost"
             size="sm"
-            onClick={() => setShowTyping(true)}
-            className="text-xs"
-            aria-label="Type instead of speaking"
+            onClick={handleAction}
+            className="w-full text-xs text-blue-500 hover:text-blue-700 dark:text-blue-400 dark:hover:text-blue-300"
+            aria-label="Execute action"
           >
-            Type
+            Go to {lastIntent.action.replace('navigate_', '')}
           </Button>
-          {showActions && (
-            <>
-              {onConfirm && (
-                <Button
-                  size="sm"
-                  onClick={onConfirm}
-                  className="flex-1"
-                  aria-label="Confirm"
-                >
-                  Yes
-                </Button>
-              )}
-              {onRetry && (
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={onRetry}
-                  className="flex-1"
-                  aria-label="Try again"
-                >
-                  Try Again
-                </Button>
-              )}
-            </>
-          )}
         </div>
       )}
 
       <div className="mt-3 flex items-center justify-between border-t border-zinc-100 pt-2 dark:border-zinc-800">
+        <span className="text-[10px] text-zinc-400">{state}</span>
         <span className="text-[10px] text-zinc-400">
-          {isSupported ? 'Speech supported' : 'Speech not supported'}
+          {messages.length} message{messages.length !== 1 ? 's' : ''}
         </span>
-        {showTyping && (
-          <button
-            onClick={() => setShowTyping(false)}
-            className="text-[10px] text-zinc-500 hover:text-zinc-700 dark:hover:text-zinc-300"
-          >
-            Voice mode
-          </button>
-        )}
       </div>
     </motion.div>
   )
@@ -191,17 +269,21 @@ export default function FloatingVoiceAssistant({
 
 export function VoiceAssistantFAB({
   onClick,
-  isOpen,
+  isOpen: isPanelOpen,
 }: {
   onClick: () => void
   isOpen: boolean
 }) {
-  if (isOpen) return null
+  if (isPanelOpen) return null
 
   return (
-    <button
+    <motion.button
+      initial={{ scale: 0 }}
+      animate={{ scale: 1 }}
+      whileHover={{ scale: 1.1 }}
+      whileTap={{ scale: 0.9 }}
       onClick={onClick}
-      className="fixed bottom-6 right-6 z-50 flex h-14 w-14 items-center justify-center rounded-full bg-zinc-900 text-white shadow-2xl transition-transform hover:scale-105 active:scale-95 dark:bg-zinc-50 dark:text-zinc-900"
+      className="fixed bottom-6 right-6 z-50 flex h-14 w-14 items-center justify-center rounded-full bg-gradient-to-br from-zinc-900 to-zinc-700 text-white shadow-2xl transition-shadow hover:shadow-3xl dark:from-zinc-100 dark:to-zinc-300 dark:text-zinc-900"
       aria-label="Open voice assistant"
     >
       <svg
@@ -218,6 +300,6 @@ export function VoiceAssistantFAB({
         <line x1="12" y1="19" x2="12" y2="23" />
         <line x1="8" y1="23" x2="16" y2="23" />
       </svg>
-    </button>
+    </motion.button>
   )
 }

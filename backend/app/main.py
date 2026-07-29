@@ -16,6 +16,7 @@ from app.routers import (
     oauth_router,
     magic_link_router,
     accessibility_router,
+    voice_router,
 )
 
 settings = get_settings()
@@ -53,6 +54,7 @@ app.include_router(wishlist_router, prefix="/api")
 app.include_router(oauth_router, prefix="/api")
 app.include_router(magic_link_router, prefix="/api")
 app.include_router(accessibility_router, prefix="/api")
+app.include_router(voice_router, prefix="/api")
 
 
 @app.get("/api/health")

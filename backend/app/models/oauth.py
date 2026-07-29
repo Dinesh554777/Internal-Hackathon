@@ -19,6 +19,4 @@ class OAuthAccount(Base):
 
     user = relationship("User", back_populates="oauth_accounts")
 
-    __table_args__ = (
-        __table_args__ if hasattr(__table_args__, '__iter__') else ()
-    ) + ({"sqlite_autoincrement": True},)
+    __table_args__ = ({"sqlite_autoincrement": True},)
