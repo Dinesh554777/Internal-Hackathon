@@ -15,7 +15,10 @@ export default function VoiceAssistanceDialog({ intent }: Props) {
   const { isVoiceEnabled } = useAccessibility()
   const [step, setStep] = useState<DialogStep>('welcome')
   const [captions, setCaptions] = useState('')
+  const [statusLabel, setStatusLabel] = useState<string>('')
   const navigatedRef = useRef(false)
+  const hasSpokenWelcomeRef = useRef(false)
+  const hasStartedEnabledRef = useRef(false)
 
   const {
     startListening,
@@ -51,32 +54,53 @@ export default function VoiceAssistanceDialog({ intent }: Props) {
     [speak]
   )
 
+  // Welcome step — speak the prompt once
   useEffect(() => {
-    if (step === 'welcome') {
+    if (step === 'welcome' && !hasSpokenWelcomeRef.current) {
+      hasSpokenWelcomeRef.current = true
       const msg =
         'Would you like Voice Assistance during authentication? Voice Assistance helps users with motor disabilities enter information using voice while keeping sensitive information secure.'
       speakAndCaption(msg)
       if (isVoiceEnabled) {
         pauseProcessing()
         startListening()
+        setStatusLabel('Listening...')
       }
     }
   }, [step, isVoiceEnabled, startListening, speakAndCaption, pauseProcessing])
 
+  // Enabled step — speak confirmation, then transition to ask_account
   useEffect(() => {
-    if (step === 'enabled') {
+    if (step === 'enabled' && !hasStartedEnabledRef.current) {
+      hasStartedEnabledRef.current = true
+      setStatusLabel('Thinking...')
+
+      const msg = `Great! Voice Assistance has been enabled. I will help you ${intent === 'login' ? 'sign in' : 'create your account'}. Let's begin.`
+      speakAndCaption(msg)
+
       const timer = setTimeout(() => {
+        setStatusLabel('')
         speakAndCaption('Do you already have an account?')
         setStep('ask_account')
         if (isVoiceEnabled) {
           pauseProcessing()
           startListening()
+          setStatusLabel('Listening...')
         }
-      }, 1800)
+      }, 3000)
+
       return () => clearTimeout(timer)
     }
-  }, [step, isVoiceEnabled, startListening, speakAndCaption, pauseProcessing])
+  }, [
+    step,
+    intent,
+    isVoiceEnabled,
+    startListening,
+    speakAndCaption,
+    pauseProcessing,
+  ])
 
+  // Voice recognition handler
   useEffect(() => {
     if (navigatedRef.current || !transcript) return
     const t = transcript.trim().toLowerCase()
@@ -95,25 +119,72 @@ export default function VoiceAssistanceDialog({ intent }: Props) {
       step === 'ask_account' &&
       /^(login|sign in|signin|i have an account|yes)/i.test(t)
     ) {
-      goTo('/login/voice')
+      handleLoginChoice()
     } else if (
       step === 'ask_account' &&
       /^(create|register|sign up|signup|new|no|i don't|i dont)/i.test(t)
     ) {
-      goTo('/signup/voice')
+      handleCreateAccountChoice()
     }
   }, [transcript, step])
 
   const handleYes = useCallback(() => {
     stopListening()
-    const msg = `Great! Voice Assistance has been enabled. I will help you ${intent === 'login' ? 'sign in' : 'create your account'}. Let's begin.`
-    speakAndCaption(msg)
+    setStatusLabel('Thinking...')
     setStep('enabled')
-  }, [intent, stopListening, speakAndCaption])
+  }, [stopListening])
 
   const handleNo = useCallback(() => {
     goTo(intent === 'login' ? '/login/standard' : '/register/standard')
   }, [intent, goTo])
+
+  const handleLoginChoice = useCallback(async () => {
+    if (navigatedRef.current) return
+    stopListening()
+    setStatusLabel('Navigating...')
+    setCaptions("Let's sign you in.")
+    await speak("Let's sign you in.").catch(() => {})
+    goTo('/login/voice')
+  }, [stopListening, speak, goTo])
+
+  const handleCreateAccountChoice = useCallback(async () => {
+    if (navigatedRef.current) return
+    stopListening()
+    setStatusLabel('Navigating...')
+    setCaptions("Let's create your account.")
+    await speak("Let's create your account.").catch(() => {})
+    goTo('/signup/voice')
+  }, [stopListening, speak, goTo])
+
+  const StatusBadge = ({ label }: { label: string }) => {
+    if (!label) return null
+    const isListening = label === 'Listening...'
+    const isThinking = label === 'Thinking...'
+    return (
+      <motion.div
+        initial={{ opacity: 0, scale: 0.9 }}
+        animate={{ opacity: 1, scale: 1 }}
+        className={`mt-4 inline-flex items-center gap-2 rounded-full px-4 py-1.5 text-xs font-medium ${
+          isListening
+            ? 'bg-green-50 text-green-700 dark:bg-green-950/30 dark:text-green-400'
+            : isThinking
+              ? 'bg-amber-50 text-amber-700 dark:bg-amber-950/30 dark:text-amber-400'
+              : 'bg-blue-50 text-blue-700 dark:bg-blue-950/30 dark:text-blue-400'
+        }`}
+      >
+        <span
+          className={`h-2 w-2 rounded-full ${
+            isListening
+              ? 'animate-pulse bg-green-500'
+              : isThinking
+                ? 'animate-pulse bg-amber-500'
+                : 'animate-pulse bg-blue-500'
+          }`}
+        />
+        {label}
+      </motion.div>
+    )
+  }
 
   return (
     <div className="relative flex min-h-screen flex-col items-center justify-center overflow-hidden bg-gradient-to-br from-zinc-50 to-zinc-100 px-4 dark:from-zinc-950 dark:to-zinc-900">
@@ -129,6 +200,7 @@ export default function VoiceAssistanceDialog({ intent }: Props) {
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: -20 }}
+            transition={{ duration: 0.35 }}
             className="relative w-full max-w-lg"
           >
             <div className="rounded-2xl border border-zinc-200/50 bg-white/80 p-8 shadow-2xl backdrop-blur-xl dark:border-zinc-800/50 dark:bg-zinc-950/80">
@@ -161,6 +233,11 @@ export default function VoiceAssistanceDialog({ intent }: Props) {
               >
                 {captions}
               </div>
+              {statusLabel && (
+                <div className="mb-4 flex justify-center">
+                  <StatusBadge label={statusLabel} />
+                </div>
+              )}
               <div className="flex gap-3">
                 <button
                   onClick={handleYes}
@@ -210,6 +287,7 @@ export default function VoiceAssistanceDialog({ intent }: Props) {
             initial={{ opacity: 0, scale: 0.95 }}
             animate={{ opacity: 1, scale: 1 }}
             exit={{ opacity: 0, y: -20 }}
+            transition={{ duration: 0.35 }}
             className="relative w-full max-w-lg"
           >
             <div className="rounded-2xl border border-emerald-200/50 bg-white/80 p-8 shadow-2xl backdrop-blur-xl dark:border-emerald-800/50 dark:bg-zinc-950/80">
@@ -240,6 +318,11 @@ export default function VoiceAssistanceDialog({ intent }: Props) {
               >
                 {captions}
               </div>
+              {statusLabel && (
+                <div className="mt-4 flex justify-center">
+                  <StatusBadge label={statusLabel} />
+                </div>
+              )}
             </div>
           </motion.div>
         )}
@@ -250,6 +333,7 @@ export default function VoiceAssistanceDialog({ intent }: Props) {
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: -20 }}
+            transition={{ duration: 0.35 }}
             className="relative w-full max-w-lg"
           >
             <div className="rounded-2xl border border-zinc-200/50 bg-white/80 p-8 shadow-2xl backdrop-blur-xl dark:border-zinc-800/50 dark:bg-zinc-950/80">
@@ -258,7 +342,7 @@ export default function VoiceAssistanceDialog({ intent }: Props) {
                   Do you already have an account?
                 </h2>
                 <p className="mt-2 text-sm text-zinc-500 dark:text-zinc-400">
-                  You can say "Login" or "Create Account"
+                  You can say &quot;Login&quot; or &quot;Create Account&quot;
                 </p>
               </div>
               <div
@@ -268,10 +352,15 @@ export default function VoiceAssistanceDialog({ intent }: Props) {
               >
                 {captions}
               </div>
+              {statusLabel && (
+                <div className="mb-4 flex justify-center">
+                  <StatusBadge label={statusLabel} />
+                </div>
+              )}
               <div className="flex flex-col gap-3">
                 <button
-                  onClick={() => goTo('/login/voice')}
-                  className="flex items-center justify-center gap-2 rounded-xl bg-zinc-900 px-6 py-5 font-medium text-white transition-all hover:bg-zinc-800 active:scale-[0.98] text-lg dark:bg-zinc-50 dark:text-zinc-900 dark:hover:bg-zinc-200"
+                  onClick={handleLoginChoice}
+                  className="flex items-center justify-center gap-2 rounded-xl bg-zinc-900 px-6 py-5 text-lg font-medium text-white transition-all hover:bg-zinc-800 active:scale-[0.98] dark:bg-zinc-50 dark:text-zinc-900 dark:hover:bg-zinc-200"
                 >
                   <svg
                     xmlns="http://www.w3.org/2000/svg"
@@ -289,8 +378,8 @@ export default function VoiceAssistanceDialog({ intent }: Props) {
                   Login
                 </button>
                 <button
-                  onClick={() => goTo('/signup/voice')}
-                  className="flex items-center justify-center gap-2 rounded-xl border-2 border-zinc-900 bg-white px-6 py-5 font-medium text-zinc-900 transition-all hover:bg-zinc-50 active:scale-[0.98] text-lg dark:border-zinc-100 dark:bg-zinc-900 dark:text-zinc-100 dark:hover:bg-zinc-800"
+                  onClick={handleCreateAccountChoice}
+                  className="flex items-center justify-center gap-2 rounded-xl border-2 border-zinc-900 bg-white px-6 py-5 text-lg font-medium text-zinc-900 transition-all hover:bg-zinc-50 active:scale-[0.98] dark:border-zinc-100 dark:bg-zinc-900 dark:text-zinc-100 dark:hover:bg-zinc-800"
                 >
                   <svg
                     xmlns="http://www.w3.org/2000/svg"
@@ -310,8 +399,8 @@ export default function VoiceAssistanceDialog({ intent }: Props) {
                 </button>
               </div>
               <p className="mt-6 text-center text-xs text-zinc-400">
-                Voice commands supported — try saying "Login" or "Create
-                Account"
+                Voice commands supported — try saying &quot;Login&quot; or
+                &quot;Create Account&quot;
               </p>
             </div>
           </motion.div>

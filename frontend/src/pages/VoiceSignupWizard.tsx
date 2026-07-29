@@ -17,7 +17,7 @@ type SignupStep =
 
 interface AuthMethods {
   label: string
-  value: 'google' | 'magic_link' | 'password'
+  value: 'google' | 'magic_link' | 'passkey' | 'password'
   icon: ReactNode
   comingSoon?: boolean
 }
@@ -57,6 +57,24 @@ const AUTH_METHODS: AuthMethods[] = [
       >
         <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z" />
         <polyline points="22,6 12,13 2,6" />
+      </svg>
+    ),
+    comingSoon: true,
+  },
+  {
+    label: 'Passkey (WebAuthn)',
+    value: 'passkey',
+    icon: (
+      <svg
+        xmlns="http://www.w3.org/2000/svg"
+        width="20"
+        height="20"
+        viewBox="0 0 24 24"
+        fill="none"
+        stroke="currentColor"
+        strokeWidth="2"
+      >
+        <path d="M21 2l-2 2m-7.61 7.61a5.5 5.5 0 1 1-7.778 7.778 5.5 5.5 0 0 1 7.777-7.777zm0 0L15.5 7.5m0 0l3 3L22 7l-3-3m-3.5 3.5L19 4" />
       </svg>
     ),
     comingSoon: true,
@@ -139,6 +157,111 @@ function normalizeNameTranscript(text: string): string {
     .join(' ')
 }
 
+function getStepNumber(step: SignupStep): number {
+  switch (step) {
+    case 'welcome':
+    case 'name_input':
+    case 'name_confirm':
+      return 1
+    case 'email_input':
+    case 'email_confirm':
+      return 2
+    case 'auth_method':
+    case 'password_input':
+    case 'registering':
+    case 'error':
+      return 3
+    default:
+      return 1
+  }
+}
+
+function ProgressIndicator({ step }: { step: SignupStep }) {
+  const current = getStepNumber(step)
+  const steps = [
+    { num: 1, label: 'Name' },
+    { num: 2, label: 'Email' },
+    { num: 3, label: 'Security' },
+  ]
+
+  return (
+    <div className="mb-6 flex items-center justify-center gap-2">
+      {steps.map((s, i) => (
+        <div key={s.num} className="flex items-center gap-2">
+          <div
+            className={`flex h-8 w-8 items-center justify-center rounded-full text-xs font-bold transition-all ${
+              current > s.num
+                ? 'bg-emerald-500 text-white'
+                : current === s.num
+                  ? 'bg-zinc-900 text-white dark:bg-zinc-100 dark:text-zinc-900'
+                  : 'bg-zinc-200 text-zinc-500 dark:bg-zinc-700 dark:text-zinc-400'
+            }`}
+          >
+            {current > s.num ? (
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                width="14"
+                height="14"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="3"
+              >
+                <polyline points="20 6 9 17 4 12" />
+              </svg>
+            ) : (
+              s.num
+            )}
+          </div>
+          <span
+            className={`text-xs font-medium ${
+              current >= s.num
+                ? 'text-zinc-700 dark:text-zinc-300'
+                : 'text-zinc-400 dark:text-zinc-500'
+            }`}
+          >
+            {s.label}
+          </span>
+          {i < steps.length - 1 && (
+            <div
+              className={`h-0.5 w-8 rounded-full ${
+                current > s.num
+                  ? 'bg-emerald-500'
+                  : 'bg-zinc-200 dark:bg-zinc-700'
+              }`}
+            />
+          )}
+        </div>
+      ))}
+    </div>
+  )
+}
+
+function StatusBadge({ label }: { label: string }) {
+  if (!label) return null
+  const isListening = label === 'Listening...'
+  return (
+    <motion.div
+      initial={{ opacity: 0, scale: 0.9 }}
+      animate={{ opacity: 1, scale: 1 }}
+      className={`mt-3 inline-flex items-center gap-2 rounded-full px-4 py-1.5 text-xs font-medium ${
+        isListening
+          ? 'bg-green-50 text-green-700 dark:bg-green-950/30 dark:text-green-400'
+          : 'bg-amber-50 text-amber-700 dark:bg-amber-950/30 dark:text-amber-400'
+      }`}
+    >
+      <span
+        className={`h-2 w-2 rounded-full ${
+          isListening
+            ? 'animate-pulse bg-green-500'
+            : 'animate-pulse bg-amber-500'
+        }`}
+      />
+      {label}
+    </motion.div>
+  )
+}
+
 export default function VoiceSignupWizard() {
   const navigate = useNavigate()
   const {
@@ -148,10 +271,12 @@ export default function VoiceSignupWizard() {
     speak,
     pauseProcessing,
     resumeProcessing,
+    confidence,
   } = useVoice()
 
   const [step, setStep] = useState<SignupStep>('welcome')
   const [captions, setCaptions] = useState('')
+  const [statusLabel, setStatusLabel] = useState('')
   const [name, setName] = useState('')
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
@@ -197,67 +322,139 @@ export default function VoiceSignupWizard() {
     pauseProcessing()
     speakAndCaption('What is your full name? Please say your name clearly.')
     setStep('name_input')
+    setStatusLabel('Listening...')
     startListening()
   }, [speakAndCaption, startListening, pauseProcessing])
 
   useEffect(() => {
     if (step === 'welcome') {
       speakAndCaption("Let's create your account. I'll guide you step by step.")
+      setStatusLabel('Thinking...')
       const t = setTimeout(goToNameInput, 2000)
       return () => clearTimeout(t)
     }
   }, [step, speakAndCaption, goToNameInput])
 
+  // Name input — listen and detect
   useEffect(() => {
     if (step !== 'name_input' || !transcript) return
     const t = transcript.trim()
     if (t.length < 2) return
+
+    // Check confidence — if too low, ask to repeat
+    if (confidence > 0 && confidence < 0.7) {
+      speakAndCaption(
+        "I couldn't understand clearly. Could you repeat your name?"
+      )
+      setStatusLabel('Listening...')
+      return
+    }
+
     const cleaned = normalizeNameTranscript(t)
     setName(cleaned)
     stopListening()
+    setStatusLabel('')
     speakAndCaption(`I heard "${cleaned}". Is that correct?`)
     setStep('name_confirm')
-  }, [transcript, step, stopListening, speakAndCaption])
+  }, [transcript, step, stopListening, speakAndCaption, confidence])
 
+  // Email input — listen and detect
   useEffect(() => {
     if (step !== 'email_input' || !transcript) return
     const t = transcript.trim()
     if (t.length < 3) return
+
+    if (confidence > 0 && confidence < 0.7) {
+      speakAndCaption(
+        "I couldn't understand clearly. Could you repeat your email?"
+      )
+      setStatusLabel('Listening...')
+      return
+    }
+
     const cleaned = normalizeEmailTranscript(t)
     if (!cleaned.includes('@')) return
     setEmail(cleaned)
     stopListening()
+    setStatusLabel('')
     speakAndCaption(`I heard "${cleaned}". Is that correct?`)
     setStep('email_confirm')
-  }, [transcript, step, stopListening, speakAndCaption])
+  }, [transcript, step, stopListening, speakAndCaption, confidence])
+
+  // Voice confirmation handler for name_confirm and email_confirm steps
+  useEffect(() => {
+    if ((step !== 'name_confirm' && step !== 'email_confirm') || !transcript)
+      return
+    const t = transcript.trim().toLowerCase()
+
+    if (/^(yes|yeah|correct|right|yep|sure|okay|ok|confirm)$/i.test(t)) {
+      if (step === 'name_confirm') {
+        handleNameYes()
+      } else {
+        handleEmailYes()
+      }
+    } else if (/^(no|nope|wrong|incorrect|try again|repeat|again)$/i.test(t)) {
+      if (step === 'name_confirm') {
+        handleNameNo()
+      } else {
+        handleEmailNo()
+      }
+    }
+  }, [transcript, step])
+
+  // Voice command handler for auth_method step
+  useEffect(() => {
+    if (step !== 'auth_method' || !transcript) return
+    const t = transcript.trim().toLowerCase()
+
+    if (/google/i.test(t)) {
+      handleAuthMethod('google')
+    } else if (/magic\s*link|magic/i.test(t)) {
+      handleAuthMethod('magic_link')
+    } else if (/passkey|pass\s*key/i.test(t)) {
+      handleAuthMethod('passkey')
+    } else if (/password|keyboard|email/i.test(t)) {
+      handleAuthMethod('password')
+    }
+  }, [transcript, step])
 
   const handleNameYes = useCallback(() => {
+    stopListening()
     pauseProcessing()
+    setStatusLabel('Thinking...')
     speakAndCaption(
       'What is your email address? You can say it like user at example dot com.'
     )
     setStep('email_input')
-    startListening()
-  }, [speakAndCaption, startListening, pauseProcessing])
+    setTimeout(() => {
+      setStatusLabel('Listening...')
+      startListening()
+    }, 1500)
+  }, [speakAndCaption, startListening, pauseProcessing, stopListening])
 
   const handleNameNo = useCallback(() => {
     setName('')
     speakAndCaption("Let's try again. What is your full name?")
+    setStep('name_input')
+    setStatusLabel('Listening...')
     startListening()
   }, [speakAndCaption, startListening])
 
   const handleEmailYes = useCallback(() => {
+    stopListening()
     resumeProcessing()
+    setStatusLabel('')
     speakAndCaption(
-      'Passwords cannot be spoken aloud for security. Please choose how you would like to set up your account.'
+      'For security reasons, passwords cannot be spoken. Choose one authentication method.'
     )
     setStep('auth_method')
-  }, [speakAndCaption, resumeProcessing])
+  }, [speakAndCaption, resumeProcessing, stopListening])
 
   const handleEmailNo = useCallback(() => {
     setEmail('')
     speakAndCaption("Let's try again. What is your email address?")
     setStep('email_input')
+    setStatusLabel('Listening...')
     startListening()
   }, [speakAndCaption, startListening])
 
@@ -268,6 +465,7 @@ export default function VoiceSignupWizard() {
           'Please type your password in the input field below. Your password will not be spoken for security reasons.'
         speakAndCaption(msg)
         setStep('password_input')
+        setStatusLabel('')
       } else if (method === 'google') {
         speakAndCaption(
           'Google sign-in is coming soon. Please select Email and Password instead.'
@@ -275,6 +473,10 @@ export default function VoiceSignupWizard() {
       } else if (method === 'magic_link') {
         speakAndCaption(
           'Magic Link is coming soon. Please select Email and Password instead.'
+        )
+      } else if (method === 'passkey') {
+        speakAndCaption(
+          'Passkey authentication is coming soon. Please select Email and Password instead.'
         )
       }
     },
@@ -289,6 +491,7 @@ export default function VoiceSignupWizard() {
       return
     }
     setStep('registering')
+    setStatusLabel('Thinking...')
     speakAndCaption('Creating your account. Please wait.')
 
     try {
@@ -298,12 +501,11 @@ export default function VoiceSignupWizard() {
         passwordRef.current
       )
       if (result) {
-        speakAndCaption(
-          'Account created successfully! Welcome to InclusiveCart AI.'
-        )
+        setStatusLabel('Completed')
+        speakAndCaption('Your account has been created successfully.')
         const t = setTimeout(() => {
           navigate('/accessibility-profile', { replace: true })
-        }, 1500)
+        }, 2000)
         return () => clearTimeout(t)
       }
     } catch (err: any) {
@@ -314,6 +516,7 @@ export default function VoiceSignupWizard() {
       setErrorMsg(msg)
       speakAndCaption(msg)
       setStep('error')
+      setStatusLabel('')
     }
   }, [navigate, speakAndCaption])
 
@@ -324,6 +527,12 @@ export default function VoiceSignupWizard() {
         <div className="absolute -bottom-40 -left-40 h-80 w-80 rounded-full bg-gradient-to-br from-sky-500/20 to-blue-500/20 blur-3xl dark:from-sky-500/10 dark:to-blue-500/10" />
       </div>
 
+      {step !== 'welcome' && step !== 'error' && step !== 'registering' && (
+        <div className="relative z-10 mb-4 w-full max-w-lg">
+          <ProgressIndicator step={step} />
+        </div>
+      )}
+
       <AnimatePresence mode="wait">
         {step === 'welcome' && (
           <motion.div
@@ -331,6 +540,7 @@ export default function VoiceSignupWizard() {
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0 }}
+            transition={{ duration: 0.35 }}
           >
             <div className="rounded-2xl border border-zinc-200/50 bg-white/80 p-8 shadow-2xl backdrop-blur-xl dark:border-zinc-800/50 dark:bg-zinc-950/80">
               <div className="mb-4 text-center">
@@ -359,6 +569,11 @@ export default function VoiceSignupWizard() {
               >
                 {captions}
               </div>
+              {statusLabel && (
+                <div className="flex justify-center">
+                  <StatusBadge label={statusLabel} />
+                </div>
+              )}
             </div>
           </motion.div>
         )}
@@ -369,6 +584,7 @@ export default function VoiceSignupWizard() {
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0 }}
+            transition={{ duration: 0.35 }}
             className="w-full max-w-lg"
           >
             <div className="rounded-2xl border border-zinc-200/50 bg-white/80 p-8 shadow-2xl backdrop-blur-xl dark:border-zinc-800/50 dark:bg-zinc-950/80">
@@ -388,11 +604,9 @@ export default function VoiceSignupWizard() {
                     <circle cx="12" cy="7" r="4" />
                   </svg>
                 </div>
-                <h2 className="mb-2 text-xl font-bold">Your Name</h2>
-                <div className="flex items-center justify-center gap-2">
-                  <div className="h-2 w-2 animate-pulse rounded-full bg-green-500" />
-                  <span className="text-xs text-zinc-400">Listening...</span>
-                </div>
+                <h2 className="mb-2 text-xl font-bold">
+                  What is your full name?
+                </h2>
               </div>
               <div
                 className="mb-4 rounded-lg bg-blue-50 p-4 text-sm text-blue-700 dark:bg-blue-950/30 dark:text-blue-300"
@@ -400,6 +614,11 @@ export default function VoiceSignupWizard() {
               >
                 {transcript ? normalizeNameTranscript(transcript) : captions}
               </div>
+              {statusLabel && (
+                <div className="mb-3 flex justify-center">
+                  <StatusBadge label={statusLabel} />
+                </div>
+              )}
               <div className="flex flex-col gap-2">
                 <button
                   onClick={() => {
@@ -425,6 +644,7 @@ export default function VoiceSignupWizard() {
                           `I heard "${cleaned}". Is that correct?`
                         )
                         setStep('name_confirm')
+                        setStatusLabel('')
                       }
                     }
                   }}
@@ -443,11 +663,16 @@ export default function VoiceSignupWizard() {
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0 }}
+            transition={{ duration: 0.35 }}
             className="w-full max-w-lg"
           >
             <div className="rounded-2xl border border-zinc-200/50 bg-white/80 p-8 shadow-2xl backdrop-blur-xl dark:border-zinc-800/50 dark:bg-zinc-950/80">
               <div className="mb-4 text-center">
-                <h2 className="text-xl font-bold">Confirm</h2>
+                <h2 className="text-xl font-bold">
+                  {step === 'name_confirm'
+                    ? 'Is this your name?'
+                    : 'Is this your email?'}
+                </h2>
               </div>
               <div className="mb-6 rounded-lg bg-amber-50 p-4 text-center text-lg font-medium text-amber-800 dark:bg-amber-950/30 dark:text-amber-300">
                 {step === 'name_confirm' ? name : email}
@@ -458,7 +683,16 @@ export default function VoiceSignupWizard() {
               >
                 {captions}
               </div>
-              <div className="mt-6 flex gap-3">
+              {statusLabel && (
+                <div className="flex justify-center">
+                  <StatusBadge label={statusLabel} />
+                </div>
+              )}
+              <p className="mt-3 text-center text-xs text-zinc-400">
+                Say &quot;Yes&quot; to confirm or &quot;Try Again&quot; to
+                re-record
+              </p>
+              <div className="mt-4 flex gap-3">
                 <button
                   onClick={
                     step === 'name_confirm' ? handleNameYes : handleEmailYes
@@ -476,7 +710,7 @@ export default function VoiceSignupWizard() {
                   >
                     <polyline points="20 6 9 17 4 12" />
                   </svg>
-                  Yes, it's correct
+                  Yes, it&apos;s correct
                 </button>
                 <button
                   onClick={
@@ -496,7 +730,7 @@ export default function VoiceSignupWizard() {
                     <line x1="18" y1="6" x2="6" y2="18" />
                     <line x1="6" y1="6" x2="18" y2="18" />
                   </svg>
-                  Say again
+                  Try Again
                 </button>
               </div>
             </div>
@@ -509,6 +743,7 @@ export default function VoiceSignupWizard() {
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0 }}
+            transition={{ duration: 0.35 }}
             className="w-full max-w-lg"
           >
             <div className="rounded-2xl border border-zinc-200/50 bg-white/80 p-8 shadow-2xl backdrop-blur-xl dark:border-zinc-800/50 dark:bg-zinc-950/80">
@@ -528,14 +763,12 @@ export default function VoiceSignupWizard() {
                     <polyline points="22,6 12,13 2,6" />
                   </svg>
                 </div>
-                <h2 className="mb-2 text-xl font-bold">Your Email</h2>
+                <h2 className="mb-2 text-xl font-bold">
+                  What is your email address?
+                </h2>
                 <p className="text-xs text-zinc-500">
                   Say it like: user at example dot com
                 </p>
-                <div className="mt-2 flex items-center justify-center gap-2">
-                  <div className="h-2 w-2 animate-pulse rounded-full bg-green-500" />
-                  <span className="text-xs text-zinc-400">Listening...</span>
-                </div>
               </div>
               <div
                 className="mb-4 rounded-lg bg-blue-50 p-4 text-sm text-blue-700 dark:bg-blue-950/30 dark:text-blue-300"
@@ -543,11 +776,17 @@ export default function VoiceSignupWizard() {
               >
                 {transcript ? normalizeEmailTranscript(transcript) : captions}
               </div>
+              {statusLabel && (
+                <div className="mb-3 flex justify-center">
+                  <StatusBadge label={statusLabel} />
+                </div>
+              )}
               <div className="flex flex-col gap-2">
                 <button
                   onClick={() => {
                     stopListening()
                     setStep('email_input')
+                    setStatusLabel('Listening...')
                     startListening()
                   }}
                   className="rounded-xl bg-zinc-900 py-3 text-sm font-medium text-white dark:bg-zinc-50 dark:text-zinc-900"
@@ -568,6 +807,7 @@ export default function VoiceSignupWizard() {
                         stopListening()
                         speakAndCaption(`I heard "${val}". Is that correct?`)
                         setStep('email_confirm')
+                        setStatusLabel('')
                       }
                     }
                   }}
@@ -586,14 +826,17 @@ export default function VoiceSignupWizard() {
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0 }}
+            transition={{ duration: 0.35 }}
             className="w-full max-w-lg"
           >
             <div className="rounded-2xl border border-zinc-200/50 bg-white/80 p-8 shadow-2xl backdrop-blur-xl dark:border-zinc-800/50 dark:bg-zinc-950/80">
               <div className="mb-4 text-center">
-                <h2 className="mb-2 text-xl font-bold">Choose a Method</h2>
+                <h2 className="mb-2 text-xl font-bold">
+                  Choose Authentication Method
+                </h2>
                 <p className="text-sm text-zinc-500 dark:text-zinc-400">
-                  Passwords cannot be spoken aloud. Select how to secure your
-                  account.
+                  For security reasons, passwords cannot be spoken. Choose one
+                  method below.
                 </p>
               </div>
               <div
@@ -602,6 +845,10 @@ export default function VoiceSignupWizard() {
               >
                 {captions}
               </div>
+              <p className="mt-2 text-center text-xs text-zinc-400">
+                Say &quot;Google&quot;, &quot;Magic Link&quot;,
+                &quot;Passkey&quot;, or &quot;Password&quot;
+              </p>
               <div className="mt-6 flex flex-col gap-3">
                 {AUTH_METHODS.map((m) => (
                   <button
@@ -634,6 +881,7 @@ export default function VoiceSignupWizard() {
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0 }}
+            transition={{ duration: 0.35 }}
             className="w-full max-w-lg"
           >
             <div className="rounded-2xl border border-zinc-200/50 bg-white/80 p-8 shadow-2xl backdrop-blur-xl dark:border-zinc-800/50 dark:bg-zinc-950/80">
@@ -701,6 +949,7 @@ export default function VoiceSignupWizard() {
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
+            transition={{ duration: 0.35 }}
             className="w-full max-w-lg"
           >
             <div className="rounded-2xl border border-zinc-200/50 bg-white/80 p-8 text-center shadow-2xl backdrop-blur-xl dark:border-zinc-800/50 dark:bg-zinc-950/80">
@@ -714,6 +963,11 @@ export default function VoiceSignupWizard() {
               >
                 {captions}
               </div>
+              {statusLabel && (
+                <div className="flex justify-center">
+                  <StatusBadge label={statusLabel} />
+                </div>
+              )}
             </div>
           </motion.div>
         )}
@@ -724,6 +978,7 @@ export default function VoiceSignupWizard() {
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
+            transition={{ duration: 0.35 }}
             className="w-full max-w-lg"
           >
             <div className="rounded-2xl border border-red-200/50 bg-white/80 p-8 shadow-2xl backdrop-blur-xl dark:border-red-800/50 dark:bg-zinc-950/80">
