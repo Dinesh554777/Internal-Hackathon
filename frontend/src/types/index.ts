@@ -26,8 +26,15 @@ export interface Product {
   rating: number
   review_count: number
   in_wishlist?: boolean
+  brand?: string
+  originalPrice?: number
+  isNew?: boolean
+  discount?: number
+  delivery?: string
+  specifications?: Record<string, string>
+  features?: string[]
   createdAt: string
-  updatedAt: string
+  updatedAt?: string
 }
 
 export interface Category {

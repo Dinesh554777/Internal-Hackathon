@@ -156,8 +156,15 @@ class ProductService:
             "stock": product.stock,
             "rating": rating,
             "review_count": review_count,
-            "created_at": product.created_at.isoformat() if product.created_at else None,
-            "updated_at": product.updated_at.isoformat() if product.updated_at else None,
+            "brand": product.brand or "",
+            "originalPrice": product.original_price,
+            "isNew": product.is_new or False,
+            "discount": product.discount or 0.0,
+            "delivery": product.delivery or "Free Delivery",
+            "specifications": product.specifications or {},
+            "features": product.features or [],
+            "createdAt": product.created_at.isoformat() if product.created_at else None,
+            "updatedAt": product.updated_at.isoformat() if product.updated_at else None,
         }
 
     def _slugify(self, name: str) -> str:

@@ -26,18 +26,25 @@ export const productService = {
     return data
   },
 
-  async getById(id: string): Promise<{ data: Product }> {
+  async getById(id: string): Promise<Product> {
     const { data } = await api.get<{ data: Product }>(`/products/${id}`)
-    return data
+    return data.data
   },
 
   async getSuggestions(q: string): Promise<string[]> {
     const { data } = await api.get<{ data: string[] }>(
       '/products/suggestions',
-      {
-        params: { q },
-      }
+      { params: { q } }
     )
     return data.data
+  },
+
+  async getRelated(id: string, limit = 6): Promise<Product[]> {
+    const product = await this.getById(id)
+    const res = await this.getAll({
+      category_id: product.category_id,
+      limit: 50,
+    })
+    return res.data.filter((p) => p.id !== id).slice(0, limit)
   },
 }

@@ -7,7 +7,11 @@ import { ErrorBoundary } from '@/components/ErrorBoundary'
 import { AccessibilityProvider } from '@/context/AccessibilityContext'
 import { VoiceAssistantProvider } from '@/context/VoiceAssistantContext'
 import DisabilitySelectionDialog from '@/pages/DisabilitySelectionDialog'
+import SkipNavigation from '@/components/SkipNavigation'
+import ScreenReaderAnnouncements from '@/components/ScreenReaderAnnouncements'
+
 import Home from '@/pages/Home'
+import Shop from '@/pages/Shop'
 import Welcome from '@/pages/Welcome'
 import Login from '@/pages/Login'
 import Register from '@/pages/Register'
@@ -18,11 +22,13 @@ import VoiceAssistedLogin from '@/pages/VoiceAssistedLogin'
 import VoiceAssistanceDialog from '@/pages/VoiceAssistanceDialog'
 import CreateAccount from '@/pages/CreateAccount'
 import AccessibilitySettings from '@/pages/AccessibilitySettings'
+import AccessibilityDashboard from '@/pages/AccessibilityDashboard'
 import Categories from '@/pages/Categories'
 import Search from '@/pages/Search'
 import ProductDetails from '@/pages/ProductDetails'
 import Wishlist from '@/pages/Wishlist'
 import Orders from '@/pages/Orders'
+import Profile from '@/pages/Profile'
 import Cart from '@/pages/Cart'
 import Checkout from '@/pages/Checkout'
 import NotFound from '@/pages/NotFound'
@@ -46,11 +52,13 @@ export default function App() {
     <ErrorBoundary>
       <AccessibilityProvider>
         <DisabilitySelectionDialog />
+        <SkipNavigation />
+        <ScreenReaderAnnouncements />
         <BrowserRouter>
           <VoiceAssistantProvider>
             <VoiceAssistantShell />
             <Routes>
-              <Route path="/" element={<Welcome />} />
+              <Route path="/welcome" element={<Welcome />} />
 
               <Route
                 path="/login"
@@ -74,13 +82,16 @@ export default function App() {
               </Route>
 
               <Route element={<MainLayout />}>
-                <Route path="/shop" element={<Home />} />
-                <Route path="/cart" element={<Cart />} />
+                <Route index element={<Home />} />
+                <Route path="/shop" element={<Shop />} />
                 <Route path="/categories" element={<Categories />} />
                 <Route path="/search" element={<Search />} />
                 <Route path="/products/:id" element={<ProductDetails />} />
+                <Route path="/cart" element={<Cart />} />
                 <Route path="/wishlist" element={<Wishlist />} />
                 <Route path="/orders" element={<Orders />} />
+                <Route path="/orders/:orderId" element={<Orders />} />
+                <Route path="/profile" element={<Profile />} />
                 <Route
                   path="/checkout"
                   element={
@@ -124,6 +135,10 @@ export default function App() {
               <Route
                 path="/accessibility"
                 element={<AccessibilitySettings />}
+              />
+              <Route
+                path="/accessibility/dashboard"
+                element={<AccessibilityDashboard />}
               />
 
               <Route path="*" element={<NotFound />} />
