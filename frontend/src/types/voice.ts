@@ -61,6 +61,8 @@ export type Intent =
   | 'GREETING'
   | 'UNKNOWN'
   | 'SET_EMAIL'
+  | 'GO_TO_LOGIN'
+  | 'GO_TO_REGISTER'
 
 export interface IntentResult {
   intent: Intent
@@ -102,6 +104,8 @@ export type NavigationCommand =
   | 'scroll_up'
   | 'scroll_down'
   | 'product'
+  | 'login'
+  | 'register'
 
 export type DisabilityMode =
   | 'blind'

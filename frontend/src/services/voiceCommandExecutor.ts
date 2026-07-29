@@ -93,6 +93,24 @@ export function executeIntent(
         data: '/accessibility',
       }
 
+    case 'GO_TO_LOGIN':
+      navigationController.execute('login')
+      return {
+        success: true,
+        response: result.response,
+        action: 'navigate',
+        data: '/login',
+      }
+
+    case 'GO_TO_REGISTER':
+      navigationController.execute('register')
+      return {
+        success: true,
+        response: result.response,
+        action: 'navigate',
+        data: '/register',
+      }
+
     case 'OPEN_CATEGORY':
       navigationController.execute('categories')
       return {

@@ -58,6 +58,12 @@ export class NavigationController {
       case 'scroll_down':
         window.scrollBy({ top: 300, behavior: 'smooth' })
         return true
+      case 'login':
+        this.navigate?.('/login')
+        return true
+      case 'register':
+        this.navigate?.('/register')
+        return true
       case 'product':
         if (payload) {
           this.navigate?.(`/products/${payload}`)

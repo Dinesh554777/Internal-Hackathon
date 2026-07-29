@@ -457,6 +457,25 @@ const FALLBACK_INTENTS: Array<{
     intent: 'MOVE_TO_WISHLIST',
     extract: (m) => ({ product_name: m[1]?.trim() }),
   },
+  {
+    patterns: [
+      /^(?:go to|open|show|navigate to)\s+(?:the\s+)?(?:sign.?in|login)\s+(?:page)?$/i,
+      /^(?:sign.?in|login)\s+(?:page|now)?$/i,
+      /^i want to sign in$/i,
+      /^sign me in$/i,
+    ],
+    intent: 'GO_TO_LOGIN',
+    extract: () => ({}),
+  },
+  {
+    patterns: [
+      /^(?:go to|open|show|navigate to)\s+(?:the\s+)?(?:sign.?up|register|create account)\s+(?:page)?$/i,
+      /^(?:sign.?up|register|create account)\s+(?:page|now)?$/i,
+      /^i want to (?:sign up|register|create an? account)$/i,
+    ],
+    intent: 'GO_TO_REGISTER',
+    extract: () => ({}),
+  },
 ]
 
 export function parseLocally(text: string): IntentResult | null {
@@ -562,6 +581,10 @@ function localResponse(
       return match[1] ? `Filtering by ${match[1]}.` : 'Filtering results.'
     case 'SORT_RESULTS':
       return 'Sorting results.'
+    case 'GO_TO_LOGIN':
+      return 'Taking you to the sign in page.'
+    case 'GO_TO_REGISTER':
+      return 'Taking you to the sign up page.'
     case 'STOP':
       return 'Stopping.'
     case 'REPEAT':
