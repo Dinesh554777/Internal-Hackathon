@@ -85,3 +85,26 @@ def require_role(role: UserRole):
 
 
 require_admin = require_role(UserRole.ADMIN)
+
+
+def get_current_user_optional(
+    request: Request,
+    db: Session = Depends(get_db),
+) -> User | None:
+    auth_header = request.headers.get("Authorization", "")
+    if not auth_header.startswith("Bearer "):
+        return None
+    token = auth_header[7:]
+    try:
+        payload = decode_token(token)
+        if payload.get("type") != "access":
+            return None
+        user_id = payload.get("sub")
+        if user_id is None:
+            return None
+        user = db.query(User).filter(User.id == user_id).first()
+        if user and user.is_active:
+            return user
+    except ValueError:
+        return None
+    return None

@@ -5,6 +5,7 @@ import DashboardLayout from '@/layouts/DashboardLayout'
 import { ProtectedRoute } from '@/components/ProtectedRoute'
 import { ErrorBoundary } from '@/components/ErrorBoundary'
 import { AccessibilityProvider } from '@/context/AccessibilityContext'
+import DisabilitySelectionDialog from '@/pages/DisabilitySelectionDialog'
 import Home from '@/pages/Home'
 import Welcome from '@/pages/Welcome'
 import Login from '@/pages/Login'
@@ -15,6 +16,12 @@ import StandardLogin from '@/pages/StandardLogin'
 import VoiceAssistedLogin from '@/pages/VoiceAssistedLogin'
 import VoiceAssistanceDialog from '@/pages/VoiceAssistanceDialog'
 import CreateAccount from '@/pages/CreateAccount'
+import AccessibilitySettings from '@/pages/AccessibilitySettings'
+import Categories from '@/pages/Categories'
+import Search from '@/pages/Search'
+import ProductDetails from '@/pages/ProductDetails'
+import Wishlist from '@/pages/Wishlist'
+import Orders from '@/pages/Orders'
 import Cart from '@/pages/Cart'
 import Checkout from '@/pages/Checkout'
 import NotFound from '@/pages/NotFound'
@@ -23,6 +30,7 @@ export default function App() {
   return (
     <ErrorBoundary>
       <AccessibilityProvider>
+        <DisabilitySelectionDialog />
         <BrowserRouter>
           <Routes>
             <Route path="/" element={<Welcome />} />
@@ -51,6 +59,11 @@ export default function App() {
             <Route element={<MainLayout />}>
               <Route path="/shop" element={<Home />} />
               <Route path="/cart" element={<Cart />} />
+              <Route path="/categories" element={<Categories />} />
+              <Route path="/search" element={<Search />} />
+              <Route path="/products/:id" element={<ProductDetails />} />
+              <Route path="/wishlist" element={<Wishlist />} />
+              <Route path="/orders" element={<Orders />} />
               <Route
                 path="/checkout"
                 element={
@@ -90,6 +103,8 @@ export default function App() {
                 element={<div className="p-6">Settings</div>}
               />
             </Route>
+
+            <Route path="/accessibility" element={<AccessibilitySettings />} />
 
             <Route path="*" element={<NotFound />} />
           </Routes>

@@ -9,6 +9,7 @@ class AccessibilityProfileCreate(BaseModel):
     voice_enabled: bool = False
     high_contrast: bool = False
     keyboard_navigation: bool = True
+    screen_reader_support: bool = False
     reading_speed: str = "normal"
     language: str = "en"
     speech_rate: str = "normal"
@@ -16,6 +17,7 @@ class AccessibilityProfileCreate(BaseModel):
     simplified_layout: bool = False
     large_buttons: bool = False
     captions_enabled: bool = True
+    animations_off: bool = False
     preferences: dict = {}
 
 
@@ -26,6 +28,7 @@ class AccessibilityProfileUpdate(BaseModel):
     voice_enabled: bool | None = None
     high_contrast: bool | None = None
     keyboard_navigation: bool | None = None
+    screen_reader_support: bool | None = None
     reading_speed: str | None = None
     language: str | None = None
     speech_rate: str | None = None
@@ -33,6 +36,7 @@ class AccessibilityProfileUpdate(BaseModel):
     simplified_layout: bool | None = None
     large_buttons: bool | None = None
     captions_enabled: bool | None = None
+    animations_off: bool | None = None
     preferences: dict | None = None
 
 
@@ -45,6 +49,7 @@ class AccessibilityProfileResponse(BaseModel):
     voice_enabled: bool
     high_contrast: bool
     keyboard_navigation: bool
+    screen_reader_support: bool
     reading_speed: str
     language: str
     speech_rate: str
@@ -52,6 +57,7 @@ class AccessibilityProfileResponse(BaseModel):
     simplified_layout: bool
     large_buttons: bool
     captions_enabled: bool
+    animations_off: bool
     preferences: dict
     created_at: datetime
     updated_at: datetime

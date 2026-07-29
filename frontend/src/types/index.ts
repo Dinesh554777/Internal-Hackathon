@@ -13,16 +13,44 @@ export interface User {
 export interface Product {
   id: string
   name: string
+  slug: string
   description: string
   price: number
   currency: string
   images: string[]
-  category: string
+  category_id: string
+  category_name: string
+  category_slug: string
   tags: string[]
   stock: number
   rating: number
+  review_count: number
+  in_wishlist?: boolean
   createdAt: string
   updatedAt: string
+}
+
+export interface Category {
+  id: string
+  name: string
+  slug: string
+  description: string
+  image: string
+  display_order: number
+  product_count: number
+  created_at: string
+  updated_at: string
+}
+
+export interface Review {
+  id: string
+  user_id: string
+  user_name: string
+  product_id: string
+  rating: number
+  title: string
+  comment: string
+  created_at: string
 }
 
 export interface CartItem {
@@ -88,5 +116,5 @@ export interface PaginatedResponse<T> {
   total: number
   page: number
   limit: number
-  totalPages: number
+  total_pages: number
 }

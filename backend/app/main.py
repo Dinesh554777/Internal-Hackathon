@@ -8,8 +8,11 @@ from app.middleware.csrf import CSRFMiddleware
 from app.routers import (
     auth_router,
     products_router,
+    categories_router,
     cart_router,
     orders_router,
+    reviews_router,
+    wishlist_router,
     oauth_router,
     magic_link_router,
     accessibility_router,
@@ -42,8 +45,11 @@ app.add_middleware(CSRFMiddleware)
 
 app.include_router(auth_router, prefix="/api")
 app.include_router(products_router, prefix="/api")
+app.include_router(categories_router, prefix="/api")
 app.include_router(cart_router, prefix="/api")
 app.include_router(orders_router, prefix="/api")
+app.include_router(reviews_router, prefix="/api")
+app.include_router(wishlist_router, prefix="/api")
 app.include_router(oauth_router, prefix="/api")
 app.include_router(magic_link_router, prefix="/api")
 app.include_router(accessibility_router, prefix="/api")
