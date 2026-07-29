@@ -1,11 +1,10 @@
 import { useState, useEffect, useCallback } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { motion, AnimatePresence } from 'framer-motion'
+import { motion } from 'framer-motion'
 import { useSpeechRecognition } from '@/hooks/useSpeechRecognition'
 import { useSpeechSynthesis } from '@/hooks/useSpeechSynthesis'
 import { Button } from '@/components/ui/button'
 import { ModeToggle } from '@/components/ModeToggle'
-import FloatingVoiceAssistant from '@/components/FloatingVoiceAssistant'
 
 type Step =
   | 'greeting'
@@ -93,32 +92,6 @@ export default function VoiceAssistedLogin() {
     navigate('/auth/google')
   }
 
-  const handleTypingResponse = (text: string) => {
-    if (step === 'ask_email') {
-      const detectedEmail = text.trim().toLowerCase()
-      setEmail(detectedEmail)
-      stop()
-      const msg = `I heard ${detectedEmail}. Is that correct?`
-      speakAndCaption(msg)
-      setStep('confirm_email')
-    }
-  }
-
-  const handleAssistantResponse = (text: string) => {
-    if (step === 'confirm_email') {
-      const lower = text.toLowerCase()
-      if (
-        lower.includes('yes') ||
-        lower.includes('correct') ||
-        lower.includes('right')
-      ) {
-        handleEmailConfirm()
-      } else {
-        handleEmailRetry()
-      }
-    }
-  }
-
   return (
     <div className="relative flex min-h-screen flex-col items-center justify-center overflow-hidden bg-gradient-to-br from-zinc-50 to-zinc-100 px-4 dark:from-zinc-950 dark:to-zinc-900">
       <div className="absolute top-4 right-4">
@@ -169,109 +142,106 @@ export default function VoiceAssistedLogin() {
           </div>
         </motion.div>
       ) : step !== 'choose_method' ? (
-        <AnimatePresence mode="wait">
-          <motion.div
-            key={step}
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: -20 }}
-            className="relative z-10 w-full max-w-md text-center"
-          >
-            <div className="rounded-2xl border border-zinc-200/50 bg-white/80 p-8 shadow-2xl backdrop-blur-xl dark:border-zinc-800/50 dark:bg-zinc-950/80">
-              {step === 'greeting' && (
-                <div className="space-y-4">
-                  <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-full bg-gradient-to-br from-blue-500/20 to-cyan-500/20">
-                    <svg
-                      xmlns="http://www.w3.org/2000/svg"
-                      width="28"
-                      height="28"
-                      viewBox="0 0 24 24"
-                      fill="none"
-                      stroke="currentColor"
-                      strokeWidth="1.5"
-                      className="text-blue-600 dark:text-blue-400"
-                    >
-                      <path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z" />
-                      <path d="M19 10v2a7 7 0 0 1-14 0v-2" />
-                    </svg>
-                  </div>
-                  <p className="text-lg font-medium">Voice Assistant Active</p>
-                  <p className="text-sm text-zinc-500 dark:text-zinc-400">
-                    Preparing your secure login...
-                  </p>
-                </div>
-              )}
-
-              {step === 'ask_email' && (
-                <div className="space-y-4">
-                  <div
-                    className={`mx-auto flex h-16 w-16 items-center justify-center rounded-full transition-all ${
-                      isListening
-                        ? 'bg-green-500/20 scale-110'
-                        : 'bg-zinc-100 dark:bg-zinc-800'
-                    }`}
+        <motion.div
+          key={step}
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="relative z-10 w-full max-w-md text-center"
+        >
+          <div className="rounded-2xl border border-zinc-200/50 bg-white/80 p-8 shadow-2xl backdrop-blur-xl dark:border-zinc-800/50 dark:bg-zinc-950/80">
+            {step === 'greeting' && (
+              <div className="space-y-4">
+                <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-full bg-gradient-to-br from-blue-500/20 to-cyan-500/20">
+                  <svg
+                    xmlns="http://www.w3.org/2000/svg"
+                    width="28"
+                    height="28"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="1.5"
+                    className="text-blue-600 dark:text-blue-400"
                   >
-                    <svg
-                      xmlns="http://www.w3.org/2000/svg"
-                      width="28"
-                      height="28"
-                      viewBox="0 0 24 24"
-                      fill="none"
-                      stroke="currentColor"
-                      strokeWidth="1.5"
-                      className={`${isListening ? 'text-green-600 dark:text-green-400' : 'text-zinc-500'}`}
-                    >
-                      <path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z" />
-                      <path d="M19 10v2a7 7 0 0 1-14 0v-2" />
-                    </svg>
-                  </div>
-                  <p className="text-lg font-medium">
-                    {isListening ? 'Listening...' : 'Ready'}
-                  </p>
-                  <p className="text-sm text-zinc-500 dark:text-zinc-400">
-                    Speak your email address clearly
-                  </p>
-                  {!isSupported && (
-                    <div className="rounded-lg bg-amber-50 p-3 text-sm text-amber-600 dark:bg-amber-950/50 dark:text-amber-400">
-                      Speech recognition not supported in this browser. Please
-                      use the typing option below.
-                    </div>
-                  )}
+                    <path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z" />
+                    <path d="M19 10v2a7 7 0 0 1-14 0v-2" />
+                  </svg>
                 </div>
-              )}
+                <p className="text-lg font-medium">Voice Assistant Active</p>
+                <p className="text-sm text-zinc-500 dark:text-zinc-400">
+                  Preparing your secure login...
+                </p>
+              </div>
+            )}
 
-              {step === 'confirm_email' && (
-                <div className="space-y-4">
-                  <div className="rounded-lg bg-zinc-50 p-4 dark:bg-zinc-800">
-                    <p className="text-sm text-zinc-500 dark:text-zinc-400">
-                      Recognized email
-                    </p>
-                    <p className="mt-1 text-xl font-semibold text-zinc-900 dark:text-zinc-100">
-                      {email}
-                    </p>
-                  </div>
-                  <div className="flex gap-3">
-                    <Button
-                      onClick={handleEmailConfirm}
-                      className="flex-1"
-                      size="lg"
-                    >
-                      Yes, that&apos;s correct
-                    </Button>
-                    <Button
-                      onClick={handleEmailRetry}
-                      variant="outline"
-                      className="flex-1"
-                      size="lg"
-                    >
-                      Try Again
-                    </Button>
-                  </div>
+            {step === 'ask_email' && (
+              <div className="space-y-4">
+                <div
+                  className={`mx-auto flex h-16 w-16 items-center justify-center rounded-full transition-all ${
+                    isListening
+                      ? 'bg-green-500/20 scale-110'
+                      : 'bg-zinc-100 dark:bg-zinc-800'
+                  }`}
+                >
+                  <svg
+                    xmlns="http://www.w3.org/2000/svg"
+                    width="28"
+                    height="28"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="1.5"
+                    className={`${isListening ? 'text-green-600 dark:text-green-400' : 'text-zinc-500'}`}
+                  >
+                    <path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z" />
+                    <path d="M19 10v2a7 7 0 0 1-14 0v-2" />
+                  </svg>
                 </div>
-              )}
-            </div>
-          </motion.div>
-        </AnimatePresence>
+                <p className="text-lg font-medium">
+                  {isListening ? 'Listening...' : 'Ready'}
+                </p>
+                <p className="text-sm text-zinc-500 dark:text-zinc-400">
+                  Speak your email address clearly
+                </p>
+                {!isSupported && (
+                  <div className="rounded-lg bg-amber-50 p-3 text-sm text-amber-600 dark:bg-amber-950/50 dark:text-amber-400">
+                    Speech recognition not supported in this browser. Please use
+                    the typing option below.
+                  </div>
+                )}
+              </div>
+            )}
+
+            {step === 'confirm_email' && (
+              <div className="space-y-4">
+                <div className="rounded-lg bg-zinc-50 p-4 dark:bg-zinc-800">
+                  <p className="text-sm text-zinc-500 dark:text-zinc-400">
+                    Recognized email
+                  </p>
+                  <p className="mt-1 text-xl font-semibold text-zinc-900 dark:text-zinc-100">
+                    {email}
+                  </p>
+                </div>
+                <div className="flex gap-3">
+                  <Button
+                    onClick={handleEmailConfirm}
+                    className="flex-1"
+                    size="lg"
+                  >
+                    Yes, that&apos;s correct
+                  </Button>
+                  <Button
+                    onClick={handleEmailRetry}
+                    variant="outline"
+                    className="flex-1"
+                    size="lg"
+                  >
+                    Try Again
+                  </Button>
+                </div>
+              </div>
+            )}
+          </div>
+        </motion.div>
       ) : null}
 
       {step === 'choose_method' && (
@@ -367,26 +337,55 @@ export default function VoiceAssistedLogin() {
         </motion.div>
       )}
 
-      <AnimatePresence>
-        {assistantOpen && (
-          <FloatingVoiceAssistant
-            message={captions}
-            listening={isListening}
-            transcript={transcript}
-            captions={captions}
-            showActions={step === 'confirm_email'}
-            onConfirm={handleEmailConfirm}
-            onRetry={handleEmailRetry}
-            onResponse={
-              step === 'ask_email'
-                ? handleTypingResponse
-                : step === 'confirm_email'
-                  ? handleAssistantResponse
-                  : undefined
-            }
-          />
-        )}
-      </AnimatePresence>
+      {assistantOpen && (
+        <div className="fixed bottom-6 right-6 z-50 w-80 rounded-2xl border border-zinc-200/50 bg-white/90 p-4 shadow-2xl backdrop-blur-xl dark:border-zinc-800/50 dark:bg-zinc-950/90">
+          <div className="mb-3 flex items-center justify-between">
+            <span className="text-sm font-medium">Voice Assistant</span>
+          </div>
+          <div className="mb-3 rounded-lg bg-zinc-50 p-3 dark:bg-zinc-800">
+            <p
+              className="text-sm text-zinc-700 dark:text-zinc-300"
+              aria-live="assertive"
+            >
+              {captions}
+            </p>
+          </div>
+          {isListening && (
+            <div className="mb-3 flex items-center gap-2 rounded-lg bg-green-50 p-3 dark:bg-green-900/20">
+              <span className="h-3 w-3 animate-pulse rounded-full bg-green-500" />
+              <span className="text-sm text-green-700 dark:text-green-300">
+                Listening...
+              </span>
+            </div>
+          )}
+          <div className="flex gap-2">
+            {step === 'confirm_email' && (
+              <>
+                <Button
+                  size="sm"
+                  onClick={handleEmailConfirm}
+                  className="flex-1"
+                >
+                  Yes
+                </Button>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={handleEmailRetry}
+                  className="flex-1"
+                >
+                  Try Again
+                </Button>
+              </>
+            )}
+          </div>
+          <div className="mt-3 flex items-center justify-between border-t border-zinc-100 pt-2 dark:border-zinc-800">
+            <span className="text-[10px] text-zinc-400">
+              {isSupported ? 'Speech supported' : 'Speech not supported'}
+            </span>
+          </div>
+        </div>
+      )}
     </div>
   )
 }
