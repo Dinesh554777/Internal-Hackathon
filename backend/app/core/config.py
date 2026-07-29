@@ -15,6 +15,8 @@ class Settings(BaseSettings):
     jwt_access_token_expire_minutes: int = 30
     jwt_refresh_token_expire_days: int = 7
 
+    reset_token_expire_minutes: int = 60
+
     groq_api_key: str = ""
 
     cors_origins: list[str] = ["http://localhost:5173"]

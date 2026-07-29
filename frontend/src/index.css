@@ -1,1 +1,12 @@
 @import 'tailwindcss';
+
+@custom-variant dark (&:is(.dark *));
+
+@layer base {
+  * {
+    @apply border-zinc-200 dark:border-zinc-800;
+  }
+  body {
+    @apply bg-white text-zinc-900 dark:bg-zinc-950 dark:text-zinc-100;
+  }
+}

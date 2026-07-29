@@ -1,22 +1,35 @@
 import api from './api'
-import type { User, AuthTokens, ApiResponse } from '@/types'
+import type { User } from '@/types'
+
+export interface AuthResponse {
+  access_token: string
+  refresh_token: string
+  token_type: string
+  user: User
+}
 
 export const authService = {
-  async login(email: string, password: string): Promise<AuthTokens> {
-    const { data } = await api.post<ApiResponse<AuthTokens>>('/auth/login', {
+  async login(email: string, password: string): Promise<AuthResponse> {
+    const { data } = await api.post<AuthResponse>('/auth/login', {
       email,
       password,
     })
-    return data.data
+    return data
   },
 
-  async register(name: string, email: string, password: string): Promise<User> {
-    const { data } = await api.post<ApiResponse<User>>('/auth/register', {
+  async register(
+    name: string,
+    email: string,
+    password: string,
+    role: string = 'customer'
+  ): Promise<User> {
+    const { data } = await api.post<User>('/auth/register', {
       name,
       email,
       password,
+      role,
     })
-    return data.data
+    return data
   },
 
   async logout(): Promise<void> {
@@ -24,14 +37,33 @@ export const authService = {
   },
 
   async getProfile(): Promise<User> {
-    const { data } = await api.get<ApiResponse<User>>('/auth/profile')
-    return data.data
+    const { data } = await api.get<User>('/auth/profile')
+    return data
   },
 
-  async refreshToken(token: string): Promise<AuthTokens> {
-    const { data } = await api.post<ApiResponse<AuthTokens>>('/auth/refresh', {
-      refreshToken: token,
+  async refreshToken(token: string): Promise<{ access_token: string }> {
+    const { data } = await api.post<{ access_token: string }>('/auth/refresh', {
+      refresh_token: token,
     })
-    return data.data
+    return data
+  },
+
+  async forgotPassword(email: string): Promise<{ message: string }> {
+    const { data } = await api.post<{ message: string }>(
+      '/auth/forgot-password',
+      { email }
+    )
+    return data
+  },
+
+  async resetPassword(
+    token: string,
+    password: string
+  ): Promise<{ message: string }> {
+    const { data } = await api.post<{ message: string }>(
+      '/auth/reset-password',
+      { token, password }
+    )
+    return data
   },
 }

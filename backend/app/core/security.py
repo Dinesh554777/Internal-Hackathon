@@ -1,3 +1,4 @@
+import secrets
 from datetime import datetime, timedelta, timezone
 from typing import Any
 from jose import JWTError, jwt
@@ -39,3 +40,7 @@ def decode_token(token: str) -> dict[str, Any]:
         return payload
     except JWTError:
         raise ValueError("Invalid token")
+
+
+def generate_reset_token() -> str:
+    return secrets.token_urlsafe(32)
