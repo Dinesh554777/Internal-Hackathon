@@ -5,10 +5,13 @@ import DashboardLayout from '@/layouts/DashboardLayout'
 import { ProtectedRoute } from '@/components/ProtectedRoute'
 import { ErrorBoundary } from '@/components/ErrorBoundary'
 import { AccessibilityProvider } from '@/context/AccessibilityContext'
-import { VoiceAssistantProvider } from '@/context/VoiceAssistantContext'
+import { VoiceProvider } from '@/context/VoiceContext'
 import DisabilitySelectionDialog from '@/pages/DisabilitySelectionDialog'
 import SkipNavigation from '@/components/SkipNavigation'
 import ScreenReaderAnnouncements from '@/components/ScreenReaderAnnouncements'
+import VoiceAssistantPanel, {
+  VoiceAssistantFAB,
+} from '@/components/VoiceAssistantPanel'
 
 import Home from '@/pages/Home'
 import Shop from '@/pages/Shop'
@@ -32,20 +35,6 @@ import Profile from '@/pages/Profile'
 import Cart from '@/pages/Cart'
 import Checkout from '@/pages/Checkout'
 import NotFound from '@/pages/NotFound'
-import FloatingVoiceAssistant, {
-  VoiceAssistantFAB,
-} from '@/components/FloatingVoiceAssistant'
-import { useVoiceAssistantContext } from '@/context/VoiceAssistantContext'
-
-function VoiceAssistantShell() {
-  const { isOpen, toggleOpen } = useVoiceAssistantContext()
-  return (
-    <>
-      <FloatingVoiceAssistant />
-      <VoiceAssistantFAB onClick={toggleOpen} isOpen={isOpen} />
-    </>
-  )
-}
 
 export default function App() {
   return (
@@ -55,8 +44,9 @@ export default function App() {
         <SkipNavigation />
         <ScreenReaderAnnouncements />
         <BrowserRouter>
-          <VoiceAssistantProvider>
-            <VoiceAssistantShell />
+          <VoiceProvider>
+            <VoiceAssistantPanel />
+            <VoiceAssistantFAB />
             <Routes>
               <Route path="/welcome" element={<Welcome />} />
 
@@ -143,7 +133,7 @@ export default function App() {
 
               <Route path="*" element={<NotFound />} />
             </Routes>
-          </VoiceAssistantProvider>
+          </VoiceProvider>
         </BrowserRouter>
       </AccessibilityProvider>
     </ErrorBoundary>
