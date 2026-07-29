@@ -4,10 +4,11 @@ import { zodResolver } from '@hookform/resolvers/zod'
 import { Link, useNavigate } from 'react-router-dom'
 import { motion, AnimatePresence } from 'framer-motion'
 import { z } from 'zod'
-import { useAuth } from '@/hooks/useAuth'
+import { authService } from '@/services/auth'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { ModeToggle } from '@/components/ModeToggle'
+import { useAuthStore } from '@/store/authStore'
 import type { DisabilityCategory } from '@/types/accessibility'
 
 const step1Schema = z.object({
@@ -21,7 +22,7 @@ const step2Schema = z.object({
 type Step1Data = z.infer<typeof step1Schema>
 type Step2Data = z.infer<typeof step2Schema>
 
-type AuthMethod = 'google' | 'magic_link' | 'passkey' | null
+type AuthMethod = 'google' | 'magic_link' | 'email_password' | 'passkey' | null
 
 const disabilities: {
   value: DisabilityCategory
@@ -41,12 +42,15 @@ const disabilities: {
 
 export default function CreateAccount() {
   const navigate = useNavigate()
+  const storeLogin = useAuthStore((s) => s.login)
   const [step, setStep] = useState(1)
   const [name, setName] = useState('')
   const [email, setEmail] = useState('')
+  const [password, setPassword] = useState('')
   const [authMethod, setAuthMethod] = useState<AuthMethod>(null)
   const [disability, setDisability] = useState<DisabilityCategory>('standard')
-  const { isRegisterPending, registerError } = useAuth()
+  const [creating, setCreating] = useState(false)
+  const [createError, setCreateError] = useState<string | null>(null)
 
   const step1Form = useForm<Step1Data>({
     resolver: zodResolver(step1Schema),
@@ -68,7 +72,11 @@ export default function CreateAccount() {
 
   const handleAuthSelect = (method: AuthMethod) => {
     setAuthMethod(method)
-    setStep(4)
+    if (method === 'magic_link' || method === 'google') {
+      setStep(4)
+    } else {
+      setStep(4)
+    }
   }
 
   const handleComplete = async () => {
@@ -80,7 +88,27 @@ export default function CreateAccount() {
       navigate('/auth/google')
       return
     }
-    navigate('/login', { state: { email, name, disability } })
+    if (!password) {
+      setCreateError('Please set a password to create an account.')
+      return
+    }
+    setCreating(true)
+    setCreateError(null)
+    try {
+      await authService.register(name, email, password)
+      const res = await authService.login(email, password)
+      storeLogin(res.user, res.access_token, res.refresh_token)
+      navigate('/', { replace: true })
+    } catch (err: unknown) {
+      const msg =
+        err instanceof Error
+          ? err.message
+          : (err as { response?: { data?: { detail?: string } } })?.response
+              ?.data?.detail || 'Registration failed. Please try again.'
+      setCreateError(msg)
+    } finally {
+      setCreating(false)
+    }
   }
 
   return (
@@ -242,6 +270,24 @@ export default function CreateAccount() {
                   Magic Link
                 </button>
                 <button
+                  onClick={() => handleAuthSelect('email_password')}
+                  className="flex items-center justify-center gap-3 rounded-xl border border-zinc-200 bg-white px-6 py-4 font-medium transition-all hover:bg-zinc-50 active:scale-[0.98] dark:border-zinc-800 dark:bg-zinc-900 dark:hover:bg-zinc-800"
+                >
+                  <svg
+                    xmlns="http://www.w3.org/2000/svg"
+                    width="20"
+                    height="20"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="2"
+                  >
+                    <rect x="3" y="11" width="18" height="11" rx="2" ry="2" />
+                    <path d="M7 11V7a5 5 0 0 1 10 0v4" />
+                  </svg>
+                  Email + Password
+                </button>
+                <button
                   disabled
                   className="flex cursor-not-allowed items-center justify-center gap-3 rounded-xl border border-zinc-200 bg-white px-6 py-4 font-medium text-zinc-400 dark:border-zinc-800 dark:bg-zinc-900"
                 >
@@ -276,6 +322,28 @@ export default function CreateAccount() {
                 Step 4 of 4 — Help us personalize your experience
               </p>
 
+              {authMethod === 'email_password' && (
+                <div className="mb-4">
+                  <Input
+                    id="reg-password"
+                    label="Password"
+                    type="password"
+                    placeholder="Create a password (min 8 chars)"
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
+                  />
+                </div>
+              )}
+
+              {createError && (
+                <div
+                  role="alert"
+                  className="mb-4 rounded-lg bg-red-50 p-3 text-sm text-red-600 dark:bg-red-950/50 dark:text-red-400"
+                >
+                  {createError}
+                </div>
+              )}
+
               <div className="mb-6 grid grid-cols-3 gap-2">
                 {disabilities.map((d) => (
                   <button
@@ -294,18 +362,9 @@ export default function CreateAccount() {
                 ))}
               </div>
 
-              {registerError && (
-                <div
-                  role="alert"
-                  className="mb-4 rounded-lg bg-red-50 p-3 text-sm text-red-600 dark:bg-red-950/50 dark:text-red-400"
-                >
-                  {registerError.message}
-                </div>
-              )}
-
               <Button
                 onClick={handleComplete}
-                loading={isRegisterPending}
+                loading={creating}
                 className="w-full"
                 size="lg"
               >

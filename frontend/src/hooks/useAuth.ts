@@ -53,8 +53,12 @@ export function useAuth() {
       password: string
       role?: string
     }) => authService.register(name, email, password, role),
-    onSuccess: () => {
-      navigate('/login', { replace: true })
+    onSuccess: (_data, variables) => {
+      authService.login(variables.email, variables.password).then((res) => {
+        storeLogin(res.user, res.access_token, res.refresh_token)
+        queryClient.invalidateQueries({ queryKey: ['auth', 'profile'] })
+        navigate('/', { replace: true })
+      })
     },
   })
 

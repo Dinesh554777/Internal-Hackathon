@@ -180,7 +180,7 @@ export default function Login() {
           >
             Don&apos;t have an account?{' '}
             <Link
-              to="/register"
+              to="/register/standard"
               className="font-medium text-zinc-900 underline underline-offset-4 hover:text-zinc-600 dark:text-zinc-100 dark:hover:text-zinc-300"
             >
               Create one
