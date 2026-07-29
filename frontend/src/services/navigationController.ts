@@ -8,47 +8,49 @@ export class NavigationController {
     this.navigate = nav
   }
 
-  execute(command: NavigationCommand, payload?: string): boolean {
-    if (!this.navigate) return false
+  get isReady(): boolean {
+    return this.navigate !== null
+  }
 
+  execute(command: NavigationCommand, payload?: string): boolean {
     switch (command) {
       case 'home':
-        this.navigate('/')
+        this.navigate?.('/')
         return true
       case 'categories':
-        this.navigate('/categories')
+        this.navigate?.('/categories')
         return true
       case 'cart':
-        this.navigate('/cart')
+        this.navigate?.('/cart')
         return true
       case 'wishlist':
-        this.navigate('/wishlist')
+        this.navigate?.('/wishlist')
         return true
       case 'orders':
-        this.navigate('/orders')
+        this.navigate?.('/orders')
         return true
       case 'profile':
-        this.navigate('/profile')
+        this.navigate?.('/profile')
         return true
       case 'settings':
-        this.navigate('/accessibility')
+        this.navigate?.('/accessibility')
         return true
       case 'accessibility':
-        this.navigate('/accessibility')
+        this.navigate?.('/accessibility')
         return true
       case 'search':
-        this.navigate(
+        this.navigate?.(
           `/shop${payload ? `?q=${encodeURIComponent(payload)}` : ''}`
         )
         return true
       case 'checkout':
-        this.navigate('/checkout')
+        this.navigate?.('/checkout')
         return true
       case 'back':
-        this.navigate(-1 as unknown as string)
+        this.navigate?.(-1 as unknown as string)
         return true
       case 'forward':
-        this.navigate(1 as unknown as string)
+        this.navigate?.(1 as unknown as string)
         return true
       case 'scroll_up':
         window.scrollBy({ top: -300, behavior: 'smooth' })
@@ -56,21 +58,35 @@ export class NavigationController {
       case 'scroll_down':
         window.scrollBy({ top: 300, behavior: 'smooth' })
         return true
+      case 'product':
+        if (payload) {
+          this.navigate?.(`/products/${payload}`)
+          return true
+        }
+        return false
       default:
         return false
     }
   }
 
   navigateToProduct(productId: string): void {
-    if (this.navigate) {
-      this.navigate(`/products/${productId}`)
-    }
+    this.navigate?.(`/products/${productId}`)
   }
 
   navigateToCategory(slug: string): void {
-    if (this.navigate) {
-      this.navigate(`/shop?category=${slug}`)
-    }
+    this.navigate?.(`/shop?category=${slug}`)
+  }
+
+  navigateToSearch(query: string): void {
+    this.navigate?.(`/shop?q=${encodeURIComponent(query)}`)
+  }
+
+  scrollToTop(): void {
+    window.scrollTo({ top: 0, behavior: 'smooth' })
+  }
+
+  scrollToBottom(): void {
+    window.scrollTo({ top: document.body.scrollHeight, behavior: 'smooth' })
   }
 }
 

@@ -1,5 +1,21 @@
 export type VoiceState =
-  'idle' | 'listening' | 'processing' | 'speaking' | 'error'
+  | 'idle'
+  | 'listening'
+  | 'processing'
+  | 'confirming'
+  | 'clarifying'
+  | 'executing'
+  | 'speaking'
+  | 'completed'
+  | 'error'
+
+export type VoiceStatusPhase =
+  | 'listening'
+  | 'understanding'
+  | 'confirming'
+  | 'executing'
+  | 'completed'
+  | 'error'
 
 export type ListeningMode = 'push_to_talk' | 'continuous'
 
@@ -20,7 +36,9 @@ export type Intent =
   | 'REMOVE_FROM_CART'
   | 'OPEN_CART'
   | 'CHECKOUT'
+  | 'PLACE_ORDER'
   | 'TRACK_ORDER'
+  | 'CANCEL_ORDER'
   | 'OPEN_PROFILE'
   | 'OPEN_SETTINGS'
   | 'OPEN_CATEGORY'
@@ -28,6 +46,7 @@ export type Intent =
   | 'GO_BACK'
   | 'GO_FORWARD'
   | 'OPEN_WISHLIST'
+  | 'DELETE_WISHLIST'
   | 'HELP'
   | 'STOP'
   | 'REPEAT'
@@ -41,12 +60,22 @@ export type Intent =
   | 'CANCEL'
   | 'GREETING'
   | 'UNKNOWN'
+  | 'SET_EMAIL'
 
 export interface IntentResult {
   intent: Intent
   confidence: number
   entities: Record<string, unknown>
   response: string
+  options?: ClarificationOption[]
+}
+
+export interface ClarificationOption {
+  label: string
+  description?: string
+  intent: Intent
+  entities?: Record<string, unknown>
+  response?: string
 }
 
 export interface VoiceCommandResult {
@@ -72,6 +101,7 @@ export type NavigationCommand =
   | 'forward'
   | 'scroll_up'
   | 'scroll_down'
+  | 'product'
 
 export type DisabilityMode =
   | 'blind'
@@ -107,7 +137,16 @@ export interface AssistantContext {
   currentPage: string
   currentProductId?: string
   currentCategory?: string
-  searchResults?: unknown[]
+  searchResults?: { id: string; name: string; price?: number }[]
   lastSearchQuery?: string
   lastProductIndex?: number
+  lastListedItems?: { name: string; index: number }[]
+}
+
+export interface ContextMemoryItem {
+  role: 'user' | 'assistant' | 'system'
+  intent?: Intent
+  text: string
+  entities?: Record<string, unknown>
+  timestamp: number
 }

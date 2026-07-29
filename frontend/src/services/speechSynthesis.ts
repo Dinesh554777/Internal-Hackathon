@@ -4,6 +4,7 @@ export interface SynthesisCallbacks {
   onPause: () => void
   onResume: () => void
   onBoundary: (text: string) => void
+  onWord: (charIndex: number, charLength: number) => void
 }
 
 export class SpeechSynthesisService {
@@ -14,6 +15,7 @@ export class SpeechSynthesisService {
   private _volume = 1.0
   private _voice: SpeechSynthesisVoice | null = null
   private _paused = false
+  private currentUtterance: SpeechSynthesisUtterance | null = null
 
   get isSupported(): boolean {
     return !!window.speechSynthesis
@@ -63,16 +65,6 @@ export class SpeechSynthesisService {
     return window.speechSynthesis?.getVoices() ?? []
   }
 
-  getMaleVoices(): SpeechSynthesisVoice[] {
-    return this.getVoices().filter((v) => v.name.toLowerCase().includes('male'))
-  }
-
-  getFemaleVoices(): SpeechSynthesisVoice[] {
-    return this.getVoices().filter((v) =>
-      v.name.toLowerCase().includes('female')
-    )
-  }
-
   setCallbacks(cb: SynthesisCallbacks): void {
     this.callbacks = cb
   }
@@ -90,9 +82,12 @@ export class SpeechSynthesisService {
     utterance.volume = this._volume
     if (this._voice) utterance.voice = this._voice
 
+    this.currentUtterance = utterance
+
     utterance.onstart = () => this.callbacks?.onStart()
     utterance.onend = () => {
       this._paused = false
+      this.currentUtterance = null
       this.callbacks?.onEnd()
     }
     utterance.onpause = () => {
@@ -103,7 +98,15 @@ export class SpeechSynthesisService {
       this._paused = false
       this.callbacks?.onResume()
     }
-    utterance.onboundary = () => this.callbacks?.onBoundary(text)
+    utterance.onboundary = (e) => {
+      this.callbacks?.onWord(e.charIndex, e.charLength)
+      this.callbacks?.onBoundary(text)
+    }
+    utterance.onerror = () => {
+      this._paused = false
+      this.currentUtterance = null
+      this.callbacks?.onEnd()
+    }
 
     window.speechSynthesis.speak(utterance)
   }
@@ -125,6 +128,7 @@ export class SpeechSynthesisService {
       window.speechSynthesis.cancel()
     }
     this._paused = false
+    this.currentUtterance = null
   }
 
   repeat(): void {

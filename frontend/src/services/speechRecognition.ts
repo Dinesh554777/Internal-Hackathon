@@ -1,4 +1,4 @@
-import type { VoiceState, ListeningMode } from '@/types/voice'
+import type { VoiceState } from '@/types/voice'
 
 export interface RecognitionCallbacks {
   onResult: (text: string, isFinal: boolean, confidence: number) => void
@@ -9,11 +9,12 @@ export interface RecognitionCallbacks {
 export class SpeechRecognitionService {
   private recognition: SpeechRecognition | null = null
   private callbacks: RecognitionCallbacks | null = null
-  private listeningMode: ListeningMode = 'push_to_talk'
+  private listeningMode: ListeningMode = 'continuous'
   private isActive = false
   private restartTimeout: ReturnType<typeof setTimeout> | null = null
-  private lang = 'en-US'
+  private lang = 'en-IN'
   private sensitivity = 0.5
+  private destroyed = false
 
   get isSupported(): boolean {
     return !!(window.SpeechRecognition || window.webkitSpeechRecognition)
@@ -58,12 +59,14 @@ export class SpeechRecognitionService {
     recognition.continuous = this.listeningMode === 'continuous'
     recognition.interimResults = true
     recognition.lang = this.lang
+    recognition.maxAlternatives = 3
 
     recognition.onresult = (event: SpeechRecognitionEvent) => {
       for (let i = event.resultIndex; i < event.results.length; i++) {
         const result = event.results[i]
         const best = result[0]
-        if (best.confidence >= this.sensitivity * 0.5) {
+        const confidenceThreshold = this.sensitivity * 0.5
+        if (best.confidence >= confidenceThreshold) {
           this.callbacks?.onResult(
             best.transcript,
             result.isFinal,
@@ -75,15 +78,17 @@ export class SpeechRecognitionService {
 
     recognition.onerror = (event: SpeechRecognitionErrorEvent) => {
       if (event.error === 'no-speech' || event.error === 'aborted') return
+      if (this.destroyed) return
       this.callbacks?.onError(event.error)
       this.isActive = false
       this.callbacks?.onStateChange('error')
-      if (this.listeningMode === 'continuous') {
+      if (this.listeningMode === 'continuous' && !this.destroyed) {
         this.scheduleRestart()
       }
     }
 
     recognition.onend = () => {
+      if (this.destroyed) return
       if (this.isActive && this.listeningMode === 'continuous') {
         this.scheduleRestart()
       } else {
@@ -98,12 +103,14 @@ export class SpeechRecognitionService {
   private scheduleRestart(): void {
     if (this.restartTimeout) clearTimeout(this.restartTimeout)
     this.restartTimeout = setTimeout(() => {
-      if (this.isActive) this.start()
+      if (this.isActive && !this.destroyed) {
+        this.start()
+      }
     }, 300)
   }
 
   start(): void {
-    if (this.isActive) return
+    if (this.isActive || this.destroyed) return
     if (!this.isSupported) {
       this.callbacks?.onError('Speech recognition not supported')
       return
@@ -143,8 +150,13 @@ export class SpeechRecognitionService {
   }
 
   destroy(): void {
+    this.destroyed = true
     this.stop()
     this.callbacks = null
+  }
+
+  reset(): void {
+    this.destroyed = false
   }
 }
 

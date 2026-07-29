@@ -3,6 +3,7 @@ import api from './api'
 export interface VoiceProcessRequest {
   text: string
   conversation_id?: string
+  context?: string
 }
 
 export interface VoiceProcessResponse {
