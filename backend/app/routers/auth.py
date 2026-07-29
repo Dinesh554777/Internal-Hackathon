@@ -1,6 +1,6 @@
-from fastapi import APIRouter, Depends, HTTPException, status, Query
+from fastapi import APIRouter, Depends, HTTPException, status, Query, Request
 from sqlalchemy.orm import Session
-from app.core.dependencies import get_db, get_current_user, require_admin
+from app.core.dependencies import get_db, get_current_user, require_admin, rate_limit
 from app.core.security import decode_token
 from app.schemas.auth import (
     LoginRequest,
@@ -12,13 +12,14 @@ from app.schemas.auth import (
 )
 from app.schemas.user import UserResponse
 from app.services.auth_service import AuthService
+from app.services.audit_service import AuditService
 from app.models.user import User, UserRole
 
 router = APIRouter(prefix="/auth", tags=["Authentication"])
 
 
 @router.post("/register", response_model=UserResponse, status_code=status.HTTP_201_CREATED)
-def register(payload: RegisterRequest, db: Session = Depends(get_db)):
+def register(payload: RegisterRequest, request: Request, db: Session = Depends(get_db), _=Depends(rate_limit)):
     service = AuthService(db)
     try:
         return service.register(payload)
@@ -27,10 +28,25 @@ def register(payload: RegisterRequest, db: Session = Depends(get_db)):
 
 
 @router.post("/login", response_model=dict)
-def login(payload: LoginRequest, db: Session = Depends(get_db)):
+def login(payload: LoginRequest, request: Request, db: Session = Depends(get_db), _=Depends(rate_limit)):
     service = AuthService(db)
     try:
         access_token, refresh_token, user = service.login(payload.email, payload.password)
+        service.create_session(
+            user_id=user.id,
+            access_token=access_token,
+            refresh_token=refresh_token,
+            ip=request.client.host if request.client else None,
+            ua=request.headers.get("user-agent"),
+        )
+        audit = AuditService(db)
+        audit.log(
+            action="login",
+            user_id=user.id,
+            details="Standard password login",
+            ip_address=request.client.host if request.client else None,
+            user_agent=request.headers.get("user-agent"),
+        )
         return {
             "access_token": access_token,
             "refresh_token": refresh_token,
@@ -72,7 +88,7 @@ def logout():
 
 
 @router.post("/forgot-password", status_code=status.HTTP_200_OK)
-def forgot_password(payload: ForgotPasswordRequest, db: Session = Depends(get_db)):
+def forgot_password(payload: ForgotPasswordRequest, db: Session = Depends(get_db), _=Depends(rate_limit)):
     service = AuthService(db)
     try:
         token = service.forgot_password(payload.email)
@@ -82,7 +98,7 @@ def forgot_password(payload: ForgotPasswordRequest, db: Session = Depends(get_db
 
 
 @router.post("/reset-password", status_code=status.HTTP_200_OK)
-def reset_password(payload: ResetPasswordRequest, db: Session = Depends(get_db)):
+def reset_password(payload: ResetPasswordRequest, db: Session = Depends(get_db), _=Depends(rate_limit)):
     service = AuthService(db)
     try:
         service.reset_password(payload.token, payload.password)

@@ -17,7 +17,19 @@ class Settings(BaseSettings):
 
     reset_token_expire_minutes: int = 60
 
+    magic_link_expire_minutes: int = 10
+
+    google_client_id: str = ""
+    google_client_secret: str = ""
+    google_redirect_uri: str = "http://localhost:5173/auth/google/callback"
+
     groq_api_key: str = ""
+
+    csrf_secret: str = "change-this-csrf-secret"
+
+    rate_limit_per_minute: int = 30
+
+    frontend_url: str = "http://localhost:5173"
 
     cors_origins: list[str] = ["http://localhost:5173"]
 

@@ -1,12 +1,17 @@
+import time
 from collections.abc import Generator
-from fastapi import Depends, HTTPException, status
+from fastapi import Depends, HTTPException, status, Request
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from sqlalchemy.orm import Session
 from app.database.session import SessionLocal
 from app.core.security import decode_token
 from app.models.user import User, UserRole
+from app.core.config import get_settings
 
+settings = get_settings()
 security_scheme = HTTPBearer()
+
+_request_timestamps: dict[str, list[float]] = {}
 
 
 def get_db() -> Generator[Session, None, None]:
@@ -15,6 +20,20 @@ def get_db() -> Generator[Session, None, None]:
         yield db
     finally:
         db.close()
+
+
+def rate_limit(request: Request):
+    client_ip = request.client.host if request.client else "unknown"
+    now = time.time()
+    timestamps = _request_timestamps.get(client_ip, [])
+    timestamps = [t for t in timestamps if now - t < 60]
+    if len(timestamps) >= settings.rate_limit_per_minute:
+        raise HTTPException(
+            status_code=status.HTTP_429_TOO_MANY_REQUESTS,
+            detail="Too many requests. Please try again later.",
+        )
+    timestamps.append(now)
+    _request_timestamps[client_ip] = timestamps
 
 
 def get_current_user(
