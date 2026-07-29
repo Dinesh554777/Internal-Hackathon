@@ -8,7 +8,7 @@ class ProductBase(BaseModel):
     price: float
     currency: str = "USD"
     images: list[str] = []
-    category: str
+    category_id: str | None = None
     tags: list[str] = []
     stock: int = 0
 
@@ -23,13 +23,14 @@ class ProductUpdate(BaseModel):
     price: float | None = None
     currency: str | None = None
     images: list[str] | None = None
-    category: str | None = None
+    category_id: str | None = None
     tags: list[str] | None = None
     stock: int | None = None
 
 
 class ProductResponse(ProductBase):
     id: str
+    slug: str | None = None
     rating: float
     created_at: datetime
     updated_at: datetime

@@ -1,7 +1,8 @@
 import uuid
 from datetime import datetime, timezone
-from sqlalchemy import Column, String, Float, Integer, DateTime, Text
+from sqlalchemy import Column, String, Float, Integer, DateTime, Text, ForeignKey
 from sqlalchemy.dialects.postgresql import ARRAY
+from sqlalchemy.orm import relationship
 from app.database.base import Base
 
 
@@ -10,11 +11,12 @@ class Product(Base):
 
     id = Column(String, primary_key=True, default=lambda: str(uuid.uuid4()))
     name = Column(String, nullable=False)
+    slug = Column(String, unique=True, index=True)
     description = Column(Text, nullable=False)
     price = Column(Float, nullable=False)
     currency = Column(String, default="USD", nullable=False)
     images = Column(ARRAY(String), default=list)
-    category = Column(String, nullable=False, index=True)
+    category_id = Column(String, ForeignKey("categories.id"), nullable=True, index=True)
     tags = Column(ARRAY(String), default=list)
     stock = Column(Integer, default=0, nullable=False)
     rating = Column(Float, default=0.0)
@@ -24,3 +26,7 @@ class Product(Base):
         default=lambda: datetime.now(timezone.utc),
         onupdate=lambda: datetime.now(timezone.utc),
     )
+
+    category_rel = relationship("Category", back_populates="products")
+    reviews = relationship("Review", back_populates="product", cascade="all, delete-orphan")
+    wishlist_items = relationship("WishlistItem", back_populates="product", cascade="all, delete-orphan")

@@ -17,6 +17,11 @@ import VoiceAssistedLogin from '@/pages/VoiceAssistedLogin'
 import VoiceAssistanceDialog from '@/pages/VoiceAssistanceDialog'
 import CreateAccount from '@/pages/CreateAccount'
 import AccessibilitySettings from '@/pages/AccessibilitySettings'
+import Categories from '@/pages/Categories'
+import Search from '@/pages/Search'
+import ProductDetails from '@/pages/ProductDetails'
+import Wishlist from '@/pages/Wishlist'
+import Orders from '@/pages/Orders'
 import Cart from '@/pages/Cart'
 import Checkout from '@/pages/Checkout'
 import NotFound from '@/pages/NotFound'
@@ -54,6 +59,11 @@ export default function App() {
             <Route element={<MainLayout />}>
               <Route path="/shop" element={<Home />} />
               <Route path="/cart" element={<Cart />} />
+              <Route path="/categories" element={<Categories />} />
+              <Route path="/search" element={<Search />} />
+              <Route path="/products/:id" element={<ProductDetails />} />
+              <Route path="/wishlist" element={<Wishlist />} />
+              <Route path="/orders" element={<Orders />} />
               <Route
                 path="/checkout"
                 element={

@@ -21,19 +21,81 @@ export default function Header() {
           InclusiveCart AI
         </Link>
 
-        <div className="flex items-center gap-4">
+        <div className="hidden items-center gap-6 md:flex">
           <Link
-            to="/products"
+            to="/shop"
             className="text-sm text-zinc-600 transition-colors hover:text-zinc-900 dark:text-zinc-400 dark:hover:text-zinc-100"
           >
-            Products
+            Shop
+          </Link>
+          <Link
+            to="/categories"
+            className="text-sm text-zinc-600 transition-colors hover:text-zinc-900 dark:text-zinc-400 dark:hover:text-zinc-100"
+          >
+            Categories
+          </Link>
+          <Link
+            to="/search"
+            className="text-sm text-zinc-600 transition-colors hover:text-zinc-900 dark:text-zinc-400 dark:hover:text-zinc-100"
+          >
+            Search
+          </Link>
+          {isAuthenticated && (
+            <>
+              <Link
+                to="/wishlist"
+                className="text-sm text-zinc-600 transition-colors hover:text-zinc-900 dark:text-zinc-400 dark:hover:text-zinc-100"
+              >
+                Wishlist
+              </Link>
+              <Link
+                to="/orders"
+                className="text-sm text-zinc-600 transition-colors hover:text-zinc-900 dark:text-zinc-400 dark:hover:text-zinc-100"
+              >
+                Orders
+              </Link>
+            </>
+          )}
+        </div>
+
+        <div className="flex items-center gap-3">
+          <Link
+            to="/accessibility"
+            className="flex h-9 w-9 items-center justify-center rounded-lg text-zinc-500 transition-colors hover:bg-zinc-100 dark:hover:bg-zinc-800"
+            aria-label="Accessibility settings"
+          >
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              width="18"
+              height="18"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="2"
+            >
+              <circle cx="12" cy="12" r="10" />
+              <path d="M12 16v-4" />
+              <path d="M12 8h.01" />
+            </svg>
           </Link>
 
           <Link
             to="/cart"
             className="relative text-sm text-zinc-600 transition-colors hover:text-zinc-900 dark:text-zinc-400 dark:hover:text-zinc-100"
           >
-            Cart
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              width="20"
+              height="20"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="2"
+            >
+              <circle cx="9" cy="21" r="1" />
+              <circle cx="20" cy="21" r="1" />
+              <path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6" />
+            </svg>
             {itemCount > 0 && (
               <span className="absolute -top-2 -right-3 flex h-4 w-4 items-center justify-center rounded-full bg-zinc-900 text-[10px] text-white dark:bg-zinc-50 dark:text-zinc-900">
                 {itemCount}
@@ -44,24 +106,16 @@ export default function Header() {
           <ModeToggle />
 
           {isAuthenticated && user ? (
-            <div className="flex items-center gap-3">
+            <div className="flex items-center gap-2">
               <Link
-                to="/profile"
-                className="text-sm text-zinc-600 transition-colors hover:text-zinc-900 dark:text-zinc-400 dark:hover:text-zinc-100"
+                to="/dashboard"
+                className="flex h-9 w-9 items-center justify-center rounded-lg bg-gradient-to-br from-blue-500 to-cyan-500 text-xs font-bold text-white"
               >
-                {user.name}
+                {user.name?.charAt(0)?.toUpperCase() || 'U'}
               </Link>
-              {user.role === 'admin' && (
-                <Link
-                  to="/dashboard"
-                  className="rounded-md bg-zinc-900 px-3 py-1.5 text-xs text-white dark:bg-zinc-50 dark:text-zinc-900"
-                >
-                  Admin
-                </Link>
-              )}
               <button
                 onClick={logout}
-                className="text-sm text-zinc-500 transition-colors hover:text-red-600 dark:text-zinc-500 dark:hover:text-red-400"
+                className="hidden sm:block text-sm text-zinc-500 transition-colors hover:text-red-600 dark:text-zinc-500 dark:hover:text-red-400"
               >
                 Logout
               </button>
