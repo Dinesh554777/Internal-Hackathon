@@ -27,7 +27,7 @@ export interface Product {
   review_count: number
   in_wishlist?: boolean
   createdAt: string
-  updatedAt: string
+  updatedAt?: string
 }
 
 export interface Category {

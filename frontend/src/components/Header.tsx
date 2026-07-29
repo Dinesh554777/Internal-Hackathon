@@ -1,135 +1,278 @@
-import { Link } from 'react-router-dom'
+import { useState, useEffect, useRef } from 'react'
+import { Link, useNavigate } from 'react-router-dom'
+import {
+  Search,
+  ShoppingCart,
+  Heart,
+  User,
+  Package,
+  Menu,
+  X,
+  LogOut,
+  Accessibility,
+} from 'lucide-react'
 import { useCartStore } from '@/store/cartStore'
 import { useAuthStore } from '@/store/authStore'
 import { useAuth } from '@/hooks/useAuth'
 import { ModeToggle } from '@/components/ModeToggle'
+import { searchProducts } from '@/constants/mockData'
 
 export default function Header() {
-  const itemCount = useCartStore((state) =>
-    state.items.reduce((count, item) => count + item.quantity, 0)
-  )
+  const navigate = useNavigate()
+  const itemCount = useCartStore((s) => s.getItemCount())
   const { user, isAuthenticated } = useAuthStore()
   const { logout } = useAuth()
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
+  const [searchQuery, setSearchQuery] = useState('')
+  const [showSuggestions, setShowSuggestions] = useState(false)
+  const searchRef = useRef<HTMLFormElement>(null)
+
+  const suggestions = searchQuery.trim()
+    ? searchProducts(searchQuery).slice(0, 5)
+    : []
+
+  useEffect(() => {
+    const handleClick = (e: MouseEvent) => {
+      if (searchRef.current && !searchRef.current.contains(e.target as Node)) {
+        setShowSuggestions(false)
+      }
+    }
+    document.addEventListener('mousedown', handleClick)
+    return () => document.removeEventListener('mousedown', handleClick)
+  }, [])
+
+  const handleSearch = (e: React.FormEvent) => {
+    e.preventDefault()
+    if (searchQuery.trim()) {
+      navigate(`/shop?q=${encodeURIComponent(searchQuery.trim())}`)
+      setShowSuggestions(false)
+      setSearchQuery('')
+    }
+  }
+
+  const navLinks = [
+    { to: '/shop', label: 'Shop' },
+    { to: '/categories', label: 'Categories' },
+    { to: '/shop?sort=discount', label: 'Deals' },
+  ]
 
   return (
-    <header className="sticky top-0 z-50 border-b border-zinc-200 bg-white/80 backdrop-blur-xl dark:border-zinc-800 dark:bg-zinc-950/80">
-      <nav className="mx-auto flex max-w-7xl items-center justify-between px-4 py-4">
-        <Link
-          to="/"
-          className="text-xl font-bold bg-gradient-to-r from-zinc-900 to-zinc-600 bg-clip-text text-transparent dark:from-zinc-100 dark:to-zinc-400"
-        >
-          InclusiveCart AI
-        </Link>
+    <header className="sticky top-0 z-50 border-b border-zinc-200/80 bg-white/90 backdrop-blur-2xl dark:border-zinc-800/80 dark:bg-zinc-950/90">
+      <div className="mx-auto max-w-7xl px-4">
+        <div className="flex h-16 items-center justify-between gap-4">
+          <Link
+            to="/"
+            className="flex items-center gap-2 text-lg font-bold shrink-0"
+          >
+            <span className="bg-gradient-to-r from-blue-600 to-cyan-500 bg-clip-text text-transparent">
+              InclusiveCart
+            </span>
+            <span className="text-zinc-400">AI</span>
+          </Link>
 
-        <div className="hidden items-center gap-6 md:flex">
-          <Link
-            to="/shop"
-            className="text-sm text-zinc-600 transition-colors hover:text-zinc-900 dark:text-zinc-400 dark:hover:text-zinc-100"
+          <nav
+            className="hidden md:flex items-center gap-1"
+            aria-label="Main navigation"
           >
-            Shop
-          </Link>
-          <Link
-            to="/categories"
-            className="text-sm text-zinc-600 transition-colors hover:text-zinc-900 dark:text-zinc-400 dark:hover:text-zinc-100"
-          >
-            Categories
-          </Link>
-          <Link
-            to="/search"
-            className="text-sm text-zinc-600 transition-colors hover:text-zinc-900 dark:text-zinc-400 dark:hover:text-zinc-100"
-          >
-            Search
-          </Link>
-          {isAuthenticated && (
-            <>
+            {navLinks.map((link) => (
               <Link
-                to="/wishlist"
-                className="text-sm text-zinc-600 transition-colors hover:text-zinc-900 dark:text-zinc-400 dark:hover:text-zinc-100"
+                key={link.to}
+                to={link.to}
+                className="rounded-lg px-3 py-2 text-sm font-medium text-zinc-600 transition-colors hover:bg-zinc-100 hover:text-zinc-900 dark:text-zinc-400 dark:hover:bg-zinc-800 dark:hover:text-zinc-100"
               >
-                Wishlist
+                {link.label}
               </Link>
+            ))}
+          </nav>
+
+          <div className="hidden sm:block flex-1 max-w-md">
+            <form
+              onSubmit={handleSearch}
+              className="relative"
+              ref={searchRef as React.RefObject<HTMLFormElement>}
+            >
+              <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-zinc-400" />
+              <input
+                type="text"
+                value={searchQuery}
+                onChange={(e) => {
+                  setSearchQuery(e.target.value)
+                  setShowSuggestions(true)
+                }}
+                onFocus={() => setShowSuggestions(true)}
+                placeholder="Search products..."
+                className="w-full rounded-full border border-zinc-200 bg-zinc-50 py-2 pl-9 pr-4 text-sm placeholder:text-zinc-400 focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500/20 dark:border-zinc-700 dark:bg-zinc-900 dark:placeholder:text-zinc-500"
+                aria-label="Search products"
+              />
+              {showSuggestions && suggestions.length > 0 && (
+                <div className="absolute top-full mt-1 w-full rounded-xl border border-zinc-200 bg-white p-2 shadow-lg dark:border-zinc-700 dark:bg-zinc-950">
+                  {suggestions.map((p) => (
+                    <button
+                      key={p.id}
+                      type="button"
+                      onClick={() => {
+                        navigate(`/products/${p.id}`)
+                        setShowSuggestions(false)
+                        setSearchQuery('')
+                      }}
+                      className="flex w-full items-center gap-3 rounded-lg px-3 py-2 text-sm text-zinc-600 transition-colors hover:bg-zinc-50 dark:text-zinc-400 dark:hover:bg-zinc-800"
+                    >
+                      <img
+                        src={p.images[0]}
+                        alt=""
+                        className="h-8 w-8 rounded-lg object-cover"
+                      />
+                      <span className="flex-1 text-left truncate">
+                        {p.name}
+                      </span>
+                      <span className="text-xs font-medium text-zinc-900 dark:text-zinc-100">
+                        ${p.price}
+                      </span>
+                    </button>
+                  ))}
+                </div>
+              )}
+            </form>
+          </div>
+
+          <div className="flex items-center gap-1">
+            <Link
+              to="/accessibility"
+              className="flex h-9 w-9 items-center justify-center rounded-lg text-zinc-500 transition-colors hover:bg-zinc-100 dark:hover:bg-zinc-800"
+              aria-label="Accessibility settings"
+            >
+              <Accessibility className="h-4 w-4" />
+            </Link>
+
+            <ModeToggle />
+
+            <Link
+              to="/wishlist"
+              className="relative flex h-9 w-9 items-center justify-center rounded-lg text-zinc-500 transition-colors hover:bg-zinc-100 dark:hover:bg-zinc-800"
+              aria-label="Wishlist"
+            >
+              <Heart className="h-4 w-4" />
+            </Link>
+
+            <Link
+              to="/cart"
+              className="relative flex h-9 w-9 items-center justify-center rounded-lg text-zinc-500 transition-colors hover:bg-zinc-100 dark:hover:bg-zinc-800"
+              aria-label="Shopping cart"
+            >
+              <ShoppingCart className="h-4 w-4" />
+              {itemCount > 0 && (
+                <span className="absolute -top-0.5 -right-0.5 flex h-4 min-w-[16px] items-center justify-center rounded-full bg-gradient-to-r from-blue-500 to-cyan-500 px-1 text-[9px] font-bold text-white">
+                  {itemCount > 99 ? '99+' : itemCount}
+                </span>
+              )}
+            </Link>
+
+            {isAuthenticated && user ? (
+              <div className="relative group">
+                <button
+                  className="flex h-9 w-9 items-center justify-center rounded-lg bg-gradient-to-br from-blue-500 to-cyan-500 text-xs font-bold text-white shadow-sm transition-shadow hover:shadow-md"
+                  aria-label="Profile menu"
+                >
+                  {user.name?.charAt(0)?.toUpperCase() || 'U'}
+                </button>
+                <div className="absolute right-0 top-full mt-1 w-48 origin-top-right scale-95 opacity-0 transition-all group-hover:scale-100 group-hover:opacity-100">
+                  <div className="rounded-xl border border-zinc-200/50 bg-white/95 p-1.5 shadow-xl backdrop-blur-xl dark:border-zinc-800/50 dark:bg-zinc-950/95">
+                    <Link
+                      to="/profile"
+                      className="flex items-center gap-2.5 rounded-lg px-3 py-2 text-sm text-zinc-600 transition-colors hover:bg-zinc-50 dark:text-zinc-400 dark:hover:bg-zinc-800"
+                    >
+                      <User className="h-4 w-4" /> Profile
+                    </Link>
+                    <Link
+                      to="/orders"
+                      className="flex items-center gap-2.5 rounded-lg px-3 py-2 text-sm text-zinc-600 transition-colors hover:bg-zinc-50 dark:text-zinc-400 dark:hover:bg-zinc-800"
+                    >
+                      <Package className="h-4 w-4" /> Orders
+                    </Link>
+                    <Link
+                      to="/wishlist"
+                      className="flex items-center gap-2.5 rounded-lg px-3 py-2 text-sm text-zinc-600 transition-colors hover:bg-zinc-50 dark:text-zinc-400 dark:hover:bg-zinc-800"
+                    >
+                      <Heart className="h-4 w-4" /> Wishlist
+                    </Link>
+                    <hr className="my-1 border-zinc-200 dark:border-zinc-800" />
+                    <button
+                      onClick={logout}
+                      className="flex w-full items-center gap-2.5 rounded-lg px-3 py-2 text-sm text-red-500 transition-colors hover:bg-red-50 dark:hover:bg-red-950/50"
+                    >
+                      <LogOut className="h-4 w-4" /> Sign Out
+                    </button>
+                  </div>
+                </div>
+              </div>
+            ) : (
+              <Link
+                to="/login"
+                className="rounded-lg bg-zinc-900 px-4 py-2 text-sm font-semibold text-white transition-colors hover:bg-zinc-800 dark:bg-zinc-100 dark:text-zinc-900 dark:hover:bg-zinc-200"
+              >
+                Sign In
+              </Link>
+            )}
+
+            <button
+              onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
+              className="flex h-9 w-9 items-center justify-center rounded-lg text-zinc-500 transition-colors hover:bg-zinc-100 dark:hover:bg-zinc-800 md:hidden"
+              aria-label="Toggle menu"
+            >
+              {mobileMenuOpen ? (
+                <X className="h-5 w-5" />
+              ) : (
+                <Menu className="h-5 w-5" />
+              )}
+            </button>
+          </div>
+        </div>
+
+        {mobileMenuOpen && (
+          <div className="border-t border-zinc-200 pb-4 pt-2 dark:border-zinc-800 md:hidden">
+            <form onSubmit={handleSearch} className="mb-3">
+              <div className="relative">
+                <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-zinc-400" />
+                <input
+                  type="text"
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  placeholder="Search products..."
+                  className="w-full rounded-full border border-zinc-200 bg-zinc-50 py-2 pl-9 pr-4 text-sm dark:border-zinc-700 dark:bg-zinc-900"
+                  aria-label="Search products"
+                />
+              </div>
+            </form>
+            <nav className="flex flex-col gap-1">
+              {navLinks.map((link) => (
+                <Link
+                  key={link.to}
+                  to={link.to}
+                  onClick={() => setMobileMenuOpen(false)}
+                  className="rounded-lg px-3 py-2.5 text-sm font-medium text-zinc-600 transition-colors hover:bg-zinc-100 dark:text-zinc-400 dark:hover:bg-zinc-800"
+                >
+                  {link.label}
+                </Link>
+              ))}
+              <hr className="my-1 border-zinc-200 dark:border-zinc-800" />
               <Link
                 to="/orders"
-                className="text-sm text-zinc-600 transition-colors hover:text-zinc-900 dark:text-zinc-400 dark:hover:text-zinc-100"
+                onClick={() => setMobileMenuOpen(false)}
+                className="rounded-lg px-3 py-2.5 text-sm text-zinc-600 hover:bg-zinc-100 dark:text-zinc-400 dark:hover:bg-zinc-800"
               >
                 Orders
               </Link>
-            </>
-          )}
-        </div>
-
-        <div className="flex items-center gap-3">
-          <Link
-            to="/accessibility"
-            className="flex h-9 w-9 items-center justify-center rounded-lg text-zinc-500 transition-colors hover:bg-zinc-100 dark:hover:bg-zinc-800"
-            aria-label="Accessibility settings"
-          >
-            <svg
-              xmlns="http://www.w3.org/2000/svg"
-              width="18"
-              height="18"
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              strokeWidth="2"
-            >
-              <circle cx="12" cy="12" r="10" />
-              <path d="M12 16v-4" />
-              <path d="M12 8h.01" />
-            </svg>
-          </Link>
-
-          <Link
-            to="/cart"
-            className="relative text-sm text-zinc-600 transition-colors hover:text-zinc-900 dark:text-zinc-400 dark:hover:text-zinc-100"
-          >
-            <svg
-              xmlns="http://www.w3.org/2000/svg"
-              width="20"
-              height="20"
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              strokeWidth="2"
-            >
-              <circle cx="9" cy="21" r="1" />
-              <circle cx="20" cy="21" r="1" />
-              <path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6" />
-            </svg>
-            {itemCount > 0 && (
-              <span className="absolute -top-2 -right-3 flex h-4 w-4 items-center justify-center rounded-full bg-zinc-900 text-[10px] text-white dark:bg-zinc-50 dark:text-zinc-900">
-                {itemCount}
-              </span>
-            )}
-          </Link>
-
-          <ModeToggle />
-
-          {isAuthenticated && user ? (
-            <div className="flex items-center gap-2">
               <Link
-                to="/dashboard"
-                className="flex h-9 w-9 items-center justify-center rounded-lg bg-gradient-to-br from-blue-500 to-cyan-500 text-xs font-bold text-white"
+                to="/profile"
+                onClick={() => setMobileMenuOpen(false)}
+                className="rounded-lg px-3 py-2.5 text-sm text-zinc-600 hover:bg-zinc-100 dark:text-zinc-400 dark:hover:bg-zinc-800"
               >
-                {user.name?.charAt(0)?.toUpperCase() || 'U'}
+                Profile
               </Link>
-              <button
-                onClick={logout}
-                className="hidden sm:block text-sm text-zinc-500 transition-colors hover:text-red-600 dark:text-zinc-500 dark:hover:text-red-400"
-              >
-                Logout
-              </button>
-            </div>
-          ) : (
-            <Link
-              to="/login"
-              className="rounded-lg bg-zinc-900 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-zinc-800 dark:bg-zinc-50 dark:text-zinc-900 dark:hover:bg-zinc-200"
-            >
-              Sign in
-            </Link>
-          )}
-        </div>
-      </nav>
+            </nav>
+          </div>
+        )}
+      </div>
     </header>
   )
 }
