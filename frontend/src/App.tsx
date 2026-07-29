@@ -17,6 +17,7 @@ import VoiceAssistanceDialog from '@/pages/VoiceAssistanceDialog'
 import CreateAccount from '@/pages/CreateAccount'
 import Cart from '@/pages/Cart'
 import Checkout from '@/pages/Checkout'
+import ProductDetails from '@/pages/ProductDetails'
 import NotFound from '@/pages/NotFound'
 
 export default function App() {
@@ -51,6 +52,7 @@ export default function App() {
             <Route element={<MainLayout />}>
               <Route path="/shop" element={<Home />} />
               <Route path="/cart" element={<Cart />} />
+              <Route path="/products/:id" element={<ProductDetails />} />
               <Route
                 path="/checkout"
                 element={

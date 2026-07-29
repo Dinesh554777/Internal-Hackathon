@@ -5,8 +5,10 @@ from app.routers.orders import router as orders_router
 from app.routers.oauth import router as oauth_router
 from app.routers.magic_link import router as magic_link_router
 from app.routers.accessibility import router as accessibility_router
+from app.routers.image_description import router as image_description_router
 
 __all__ = [
     "auth_router", "products_router", "cart_router", "orders_router",
     "oauth_router", "magic_link_router", "accessibility_router",
+    "image_description_router",
 ]

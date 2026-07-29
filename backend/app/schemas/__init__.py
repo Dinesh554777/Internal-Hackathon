@@ -4,6 +4,7 @@ from app.schemas.cart import CartResponse, CartItemResponse, CartItemAdd
 from app.schemas.order import OrderCreate, OrderResponse
 from app.schemas.auth import LoginRequest, TokenResponse, RegisterRequest
 from app.schemas.accessibility import AccessibilityProfileCreate, AccessibilityProfileUpdate, AccessibilityProfileResponse
+from app.schemas.image_description import ImageDescriptionResponse
 
 __all__ = [
     "UserCreate", "UserResponse", "UserUpdate",
@@ -12,4 +13,5 @@ __all__ = [
     "OrderCreate", "OrderResponse",
     "LoginRequest", "TokenResponse", "RegisterRequest",
     "AccessibilityProfileCreate", "AccessibilityProfileUpdate", "AccessibilityProfileResponse",
+    "ImageDescriptionResponse",
 ]
