@@ -1,14 +1,15 @@
 import uuid
+import enum
 from datetime import datetime, timezone
-from sqlalchemy import Column, String, DateTime, Enum as SAEnum
+from sqlalchemy import Column, String, DateTime, Boolean, Enum as SAEnum
 from sqlalchemy.orm import relationship
 from app.database.base import Base
-import enum
 
 
 class UserRole(str, enum.Enum):
     CUSTOMER = "customer"
     ADMIN = "admin"
+    ACCESSIBILITY_TESTER = "accessibility_tester"
 
 
 class User(Base):
@@ -19,6 +20,9 @@ class User(Base):
     name = Column(String, nullable=False)
     hashed_password = Column(String, nullable=False)
     role = Column(SAEnum(UserRole), default=UserRole.CUSTOMER, nullable=False)
+    is_active = Column(Boolean, default=True, nullable=False)
+    reset_token = Column(String, nullable=True)
+    reset_token_expires = Column(DateTime(timezone=True), nullable=True)
     created_at = Column(DateTime(timezone=True), default=lambda: datetime.now(timezone.utc))
     updated_at = Column(
         DateTime(timezone=True),

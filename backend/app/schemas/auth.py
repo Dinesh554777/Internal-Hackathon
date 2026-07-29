@@ -1,4 +1,5 @@
 from pydantic import BaseModel, EmailStr
+from app.models.user import UserRole
 
 
 class LoginRequest(BaseModel):
@@ -10,6 +11,7 @@ class RegisterRequest(BaseModel):
     name: str
     email: EmailStr
     password: str
+    role: UserRole = UserRole.CUSTOMER
 
 
 class TokenResponse(BaseModel):
@@ -20,3 +22,12 @@ class TokenResponse(BaseModel):
 
 class RefreshTokenRequest(BaseModel):
     refresh_token: str
+
+
+class ForgotPasswordRequest(BaseModel):
+    email: EmailStr
+
+
+class ResetPasswordRequest(BaseModel):
+    token: str
+    password: str

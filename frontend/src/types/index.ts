@@ -1,8 +1,11 @@
+export type UserRole = 'customer' | 'admin' | 'accessibility_tester'
+
 export interface User {
   id: string
   email: string
   name: string
-  role: 'customer' | 'admin'
+  role: UserRole
+  is_active: boolean
   createdAt: string
   updatedAt: string
 }
@@ -65,6 +68,13 @@ export interface Address {
 export interface AuthTokens {
   accessToken: string
   refreshToken: string
+}
+
+export interface LoginResponse {
+  access_token: string
+  refresh_token: string
+  token_type: string
+  user: User
 }
 
 export interface ApiResponse<T> {

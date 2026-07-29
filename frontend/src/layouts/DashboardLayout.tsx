@@ -8,7 +8,7 @@ export default function DashboardLayout() {
       <Sidebar />
       <div className="flex flex-1 flex-col">
         <Header />
-        <main className="flex-1 bg-gray-50 p-6">
+        <main className="flex-1 bg-zinc-50 p-6 dark:bg-zinc-900">
           <Outlet />
         </main>
       </div>

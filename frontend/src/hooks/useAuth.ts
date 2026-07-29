@@ -8,6 +8,8 @@ export function useAuth() {
     user,
     isAuthenticated,
     isLoading,
+    setUser,
+    login: storeLogin,
     logout: storeLogout,
   } = useAuthStore()
   const queryClient = useQueryClient()
@@ -15,18 +17,27 @@ export function useAuth() {
 
   const { data: profile } = useQuery({
     queryKey: ['auth', 'profile'],
-    queryFn: authService.getProfile,
+    queryFn: async () => {
+      try {
+        const user = await authService.getProfile()
+        setUser(user)
+        return user
+      } catch {
+        storeLogout()
+        return null
+      }
+    },
     enabled: isAuthenticated,
+    retry: false,
   })
 
   const loginMutation = useMutation({
     mutationFn: ({ email, password }: { email: string; password: string }) =>
       authService.login(email, password),
     onSuccess: (data) => {
-      localStorage.setItem('accessToken', data.accessToken)
-      localStorage.setItem('refreshToken', data.refreshToken)
+      storeLogin(data.user, data.access_token, data.refresh_token)
       queryClient.invalidateQueries({ queryKey: ['auth', 'profile'] })
-      navigate('/')
+      navigate('/', { replace: true })
     },
   })
 
@@ -35,21 +46,33 @@ export function useAuth() {
       name,
       email,
       password,
+      role,
     }: {
       name: string
       email: string
       password: string
-    }) => authService.register(name, email, password),
+      role?: string
+    }) => authService.register(name, email, password, role),
     onSuccess: () => {
-      navigate('/login')
+      navigate('/login', { replace: true })
     },
   })
 
+  const forgotPasswordMutation = useMutation({
+    mutationFn: ({ email }: { email: string }) =>
+      authService.forgotPassword(email),
+  })
+
+  const resetPasswordMutation = useMutation({
+    mutationFn: ({ token, password }: { token: string; password: string }) =>
+      authService.resetPassword(token, password),
+  })
+
   const logout = () => {
-    authService.logout()
+    authService.logout().catch(() => {})
     storeLogout()
     queryClient.clear()
-    navigate('/login')
+    navigate('/login', { replace: true })
   }
 
   return {
@@ -62,6 +85,14 @@ export function useAuth() {
     register: registerMutation.mutate,
     registerError: registerMutation.error,
     isRegisterPending: registerMutation.isPending,
+    forgotPassword: forgotPasswordMutation.mutate,
+    forgotPasswordError: forgotPasswordMutation.error,
+    isForgotPasswordPending: forgotPasswordMutation.isPending,
+    forgotPasswordSuccess: forgotPasswordMutation.isSuccess,
+    resetPassword: resetPasswordMutation.mutate,
+    resetPasswordError: resetPasswordMutation.error,
+    isResetPasswordPending: resetPasswordMutation.isPending,
+    resetPasswordSuccess: resetPasswordMutation.isSuccess,
     logout,
   }
 }
