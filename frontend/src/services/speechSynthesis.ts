@@ -15,7 +15,6 @@ export class SpeechSynthesisService {
   private _volume = 1.0
   private _voice: SpeechSynthesisVoice | null = null
   private _paused = false
-  private currentUtterance: SpeechSynthesisUtterance | null = null
 
   get isSupported(): boolean {
     return !!window.speechSynthesis
@@ -82,12 +81,9 @@ export class SpeechSynthesisService {
     utterance.volume = this._volume
     if (this._voice) utterance.voice = this._voice
 
-    this.currentUtterance = utterance
-
     utterance.onstart = () => this.callbacks?.onStart()
     utterance.onend = () => {
       this._paused = false
-      this.currentUtterance = null
       this.callbacks?.onEnd()
     }
     utterance.onpause = () => {
@@ -104,7 +100,6 @@ export class SpeechSynthesisService {
     }
     utterance.onerror = () => {
       this._paused = false
-      this.currentUtterance = null
       this.callbacks?.onEnd()
     }
 
@@ -128,7 +123,6 @@ export class SpeechSynthesisService {
       window.speechSynthesis.cancel()
     }
     this._paused = false
-    this.currentUtterance = null
   }
 
   repeat(): void {

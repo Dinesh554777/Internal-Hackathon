@@ -4,14 +4,16 @@ from sqlalchemy.orm import Session
 from app.core.dependencies import get_db, rate_limit
 from app.core.config import get_settings
 from app.schemas.auth import TokenResponse
+from app.schemas.user import UserResponse
 from app.services.auth_service import AuthService
 from app.services.audit_service import AuditService
+from app.core.security import create_access_token, create_refresh_token
 
 router = APIRouter(prefix="/auth", tags=["OAuth"])
 settings = get_settings()
 
 
-@router.post("/google", response_model=TokenResponse)
+@router.post("/google")
 async def google_auth(
     request: Request,
     body: dict,
@@ -56,8 +58,16 @@ async def google_auth(
         name=user_info.get("name", user_info["email"]),
     )
 
-    access_token = auth_service.refresh_token(user.id)
-    refresh_token = auth_service.refresh_token(user.id)
+    access_token = create_access_token(user.id)
+    refresh_token = create_refresh_token(user.id)
+
+    auth_service.create_session(
+        user_id=user.id,
+        access_token=access_token,
+        refresh_token=refresh_token,
+        ip=request.client.host if request.client else None,
+        ua=request.headers.get("user-agent"),
+    )
 
     audit = AuditService(db)
     audit.log(
@@ -68,4 +78,9 @@ async def google_auth(
         user_agent=request.headers.get("user-agent"),
     )
 
-    return TokenResponse(access_token=access_token, refresh_token=refresh_token)
+    return {
+        "access_token": access_token,
+        "refresh_token": refresh_token,
+        "token_type": "bearer",
+        "user": UserResponse.model_validate(user).model_dump(),
+    }

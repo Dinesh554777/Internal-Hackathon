@@ -15,14 +15,8 @@ export default function VoiceSearchBar({
   className = '',
 }: VoiceSearchBarProps) {
   const { isVoiceEnabled, areLargeButtons } = useAccessibility()
-  const {
-    startListening,
-    stopListening,
-    state,
-    interimText,
-    transcript,
-    processText,
-  } = useVoice()
+  const { startListening, stopListening, state, interimText, transcript } =
+    useVoice()
   const [inputValue, setInputValue] = useState('')
   const [isListening, setIsListening] = useState(false)
   const [showTranscript, setShowTranscript] = useState(false)

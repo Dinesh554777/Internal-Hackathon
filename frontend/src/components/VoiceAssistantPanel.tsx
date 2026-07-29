@@ -2,7 +2,6 @@ import { useState, useRef, useEffect } from 'react'
 import { motion } from 'framer-motion'
 import {
   Mic,
-  MicOff,
   Volume2,
   VolumeX,
   X,

@@ -1,16 +1,9 @@
-import { useState } from 'react'
 import { useNavigate, Link } from 'react-router-dom'
 import { motion } from 'framer-motion'
-import {
-  Search,
-  ArrowRight,
-  TrendingUp,
-  Star,
-  Clock,
-  Truck,
-} from 'lucide-react'
+import { ArrowRight, TrendingUp, Star, Clock, Truck } from 'lucide-react'
 import { useAuthStore } from '@/store/authStore'
 import { useWishlistStore } from '@/store/wishlistStore'
+import VoiceSearchBar from '@/components/VoiceSearchBar'
 import HeroBanner from '@/components/HeroBanner'
 import CategoryShowcase from '@/components/CategoryShowcase'
 import DealsSection from '@/components/DealsSection'
@@ -28,7 +21,6 @@ const features = [
 
 export default function Home() {
   const navigate = useNavigate()
-  const [searchQuery, setSearchQuery] = useState('')
   const { addItem, isInWishlist, removeItem } = useWishlistStore()
   const isAuthenticated = useAuthStore((s) => s.isAuthenticated)
 
@@ -39,12 +31,6 @@ export default function Home() {
 
   const bestSellers = bestSellersData?.data ?? []
   const newArrivals = newArrivalsData?.data ?? []
-
-  const handleSearch = (e: React.FormEvent) => {
-    e.preventDefault()
-    if (searchQuery.trim())
-      navigate(`/shop?q=${encodeURIComponent(searchQuery.trim())}`)
-  }
 
   const handleToggleWishlist = (productId: string) => {
     if (!isAuthenticated) {
@@ -89,17 +75,11 @@ export default function Home() {
           ))}
         </div>
 
-        <form onSubmit={handleSearch} className="relative">
-          <Search className="absolute left-4 top-1/2 h-5 w-5 -translate-y-1/2 text-zinc-400" />
-          <input
-            type="text"
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            placeholder="Search 50+ products... (try 'Sony', 'Nike', 'laptop')"
-            className="w-full rounded-2xl border border-zinc-200 bg-white/80 py-4 pl-12 pr-4 text-sm shadow-lg backdrop-blur-xl placeholder:text-zinc-400 focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500/20 dark:border-zinc-800 dark:bg-zinc-950/80 dark:placeholder:text-zinc-500"
-            aria-label="Search products"
-          />
-        </form>
+        <VoiceSearchBar
+          onSearch={(query) => navigate(`/shop?q=${encodeURIComponent(query)}`)}
+          placeholder="Search 50+ products... (try 'Sony', 'Nike', 'laptop')"
+          className="shadow-lg"
+        />
 
         <CategoryShowcase />
         <DealsSection />

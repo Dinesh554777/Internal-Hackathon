@@ -1,4 +1,4 @@
-import type { VoiceState } from '@/types/voice'
+import type { VoiceState, ListeningMode } from '@/types/voice'
 
 export interface RecognitionCallbacks {
   onResult: (text: string, isFinal: boolean, confidence: number) => void
@@ -59,7 +59,7 @@ export class SpeechRecognitionService {
     recognition.continuous = this.listeningMode === 'continuous'
     recognition.interimResults = true
     recognition.lang = this.lang
-    recognition.maxAlternatives = 3
+    ;(recognition as any).maxAlternatives = 3
 
     recognition.onresult = (event: SpeechRecognitionEvent) => {
       for (let i = event.resultIndex; i < event.results.length; i++) {

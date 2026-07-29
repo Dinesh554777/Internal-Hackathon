@@ -114,7 +114,7 @@ export function VoiceProvider({ children }: { children: ReactNode }) {
   >([])
   const [currentCaptions, setCurrentCaptions] = useState('')
   const [failedAttempts, setFailedAttempts] = useState(0)
-  const [assistantCtx, setAssistantCtx] = useState<AssistantContext>({
+  const [, setAssistantCtx] = useState<AssistantContext>({
     currentPage: window.location.pathname,
   })
   const contextMemoryRef = useRef<ContextMemoryItem[]>([])
@@ -392,7 +392,7 @@ export function VoiceProvider({ children }: { children: ReactNode }) {
   )
 
   const handleIntentResult = useCallback(
-    async (result: IntentResult, originalText: string) => {
+    async (result: IntentResult, _originalText: string) => {
       addContextMemory(
         'assistant',
         result.response,

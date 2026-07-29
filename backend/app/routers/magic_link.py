@@ -2,7 +2,9 @@ from fastapi import APIRouter, Depends, HTTPException, status, Request
 from sqlalchemy.orm import Session
 from app.core.dependencies import get_db, rate_limit
 from app.core.config import get_settings
+from app.core.security import create_access_token, create_refresh_token
 from app.schemas.auth import MagicLinkRequest, MagicLinkVerifyRequest, TokenResponse
+from app.schemas.user import UserResponse
 from app.services.auth_service import AuthService
 from app.services.audit_service import AuditService
 
@@ -29,7 +31,7 @@ async def send_magic_link(
         raise HTTPException(status_code=400, detail=str(e))
 
 
-@router.post("/magic-link/verify", response_model=TokenResponse)
+@router.post("/magic-link/verify")
 async def verify_magic_link(
     body: MagicLinkVerifyRequest,
     request: Request,
@@ -42,10 +44,10 @@ async def verify_magic_link(
         if not user:
             raise HTTPException(status_code=404, detail="User not found")
 
-        access_token = auth_service.refresh_token(user.id)
-        refresh_token = auth_service.refresh_token(user.id)
+        access_token = create_access_token(user.id)
+        refresh_token = create_refresh_token(user.id)
 
-        session = auth_service.create_session(
+        auth_service.create_session(
             user_id=user.id,
             access_token=access_token,
             refresh_token=refresh_token,
@@ -62,6 +64,11 @@ async def verify_magic_link(
             user_agent=request.headers.get("user-agent"),
         )
 
-        return TokenResponse(access_token=access_token, refresh_token=refresh_token)
+        return {
+            "access_token": access_token,
+            "refresh_token": refresh_token,
+            "token_type": "bearer",
+            "user": UserResponse.model_validate(user).model_dump(),
+        }
     except ValueError as e:
         raise HTTPException(status_code=400, detail=str(e))

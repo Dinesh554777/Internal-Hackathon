@@ -162,19 +162,15 @@ export default function Header() {
 
         {mobileMenuOpen && (
           <div className="border-t border-zinc-200 pb-4 pt-2 dark:border-zinc-800 md:hidden">
-            <form onSubmit={handleSearch} className="mb-3">
-              <div className="relative">
-                <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-zinc-400" />
-                <input
-                  type="text"
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                  placeholder="Search products..."
-                  className="w-full rounded-full border border-zinc-200 bg-zinc-50 py-2 pl-9 pr-4 text-sm dark:border-zinc-700 dark:bg-zinc-900"
-                  aria-label="Search products"
-                />
-              </div>
-            </form>
+            <div className="mb-3">
+              <VoiceSearchBar
+                onSearch={(query) => {
+                  navigate(`/shop?q=${encodeURIComponent(query)}`)
+                  setMobileMenuOpen(false)
+                }}
+                placeholder="Search products..."
+              />
+            </div>
             <nav className="flex flex-col gap-1">
               {navLinks.map((link) => (
                 <Link

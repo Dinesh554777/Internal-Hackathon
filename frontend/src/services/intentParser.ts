@@ -64,8 +64,6 @@ export function parseEmailFromSpeech(text: string): string | null {
 }
 
 function createClarification(text: string, fallbackText: string): IntentResult {
-  const lower = text.toLowerCase().trim()
-
   const email = parseEmailFromSpeech(text)
   if (email) {
     return {
