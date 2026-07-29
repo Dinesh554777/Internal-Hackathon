@@ -1,0 +1,19 @@
+import uuid
+from datetime import datetime, timezone
+from sqlalchemy import Column, String, Boolean, DateTime, ForeignKey
+from sqlalchemy.orm import relationship
+from app.database.base import Base
+
+
+class MagicLink(Base):
+    __tablename__ = "magic_links"
+
+    id = Column(String, primary_key=True, default=lambda: str(uuid.uuid4()))
+    user_id = Column(String, ForeignKey("users.id"), nullable=True)
+    email = Column(String, nullable=False, index=True)
+    token = Column(String, unique=True, nullable=False, index=True)
+    used = Column(Boolean, default=False)
+    expires_at = Column(DateTime(timezone=True), nullable=False)
+    created_at = Column(DateTime(timezone=True), default=lambda: datetime.now(timezone.utc))
+
+    user = relationship("User")

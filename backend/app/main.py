@@ -4,7 +4,16 @@ from fastapi.middleware.cors import CORSMiddleware
 from app.core.config import get_settings
 from app.database.base import Base
 from app.database.session import engine
-from app.routers import auth_router, products_router, cart_router, orders_router
+from app.middleware.csrf import CSRFMiddleware
+from app.routers import (
+    auth_router,
+    products_router,
+    cart_router,
+    orders_router,
+    oauth_router,
+    magic_link_router,
+    accessibility_router,
+)
 
 settings = get_settings()
 
@@ -29,10 +38,15 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+app.add_middleware(CSRFMiddleware)
+
 app.include_router(auth_router, prefix="/api")
 app.include_router(products_router, prefix="/api")
 app.include_router(cart_router, prefix="/api")
 app.include_router(orders_router, prefix="/api")
+app.include_router(oauth_router, prefix="/api")
+app.include_router(magic_link_router, prefix="/api")
+app.include_router(accessibility_router, prefix="/api")
 
 
 @app.get("/api/health")

@@ -12,3 +12,4 @@ httpx==0.27.2
 groq==0.9.0
 openai-whisper==20240930
 python-dotenv==1.0.1
+httpx==0.27.2

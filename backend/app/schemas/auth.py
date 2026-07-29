@@ -31,3 +31,16 @@ class ForgotPasswordRequest(BaseModel):
 class ResetPasswordRequest(BaseModel):
     token: str
     password: str
+
+
+class MagicLinkRequest(BaseModel):
+    email: EmailStr
+
+
+class MagicLinkVerifyRequest(BaseModel):
+    token: str
+
+
+class GoogleAuthRequest(BaseModel):
+    code: str
+    redirect_uri: str

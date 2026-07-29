@@ -32,3 +32,6 @@ class User(Base):
 
     cart = relationship("Cart", back_populates="user", uselist=False)
     orders = relationship("Order", back_populates="user")
+    accessibility_profile = relationship("AccessibilityProfile", back_populates="user", uselist=False)
+    oauth_accounts = relationship("OAuthAccount", back_populates="user")
+    sessions = relationship("LoginSession", back_populates="user")
