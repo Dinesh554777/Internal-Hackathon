@@ -17,16 +17,30 @@ export default function VoiceAssistanceDialog({ intent }: Props) {
   const [captions, setCaptions] = useState('')
   const navigatedRef = useRef(false)
 
-  const { startListening, stopListening, transcript, speak } = useVoice()
+  const {
+    startListening,
+    stopListening,
+    transcript,
+    speak,
+    pauseProcessing,
+    resumeProcessing,
+  } = useVoice()
+
+  useEffect(() => {
+    return () => {
+      resumeProcessing()
+    }
+  }, [resumeProcessing])
 
   const goTo = useCallback(
     (path: string) => {
       if (navigatedRef.current) return
       navigatedRef.current = true
       stopListening()
+      resumeProcessing()
       navigate(path, { replace: true })
     },
-    [navigate, stopListening]
+    [navigate, stopListening, resumeProcessing]
   )
 
   const speakAndCaption = useCallback(
@@ -42,20 +56,26 @@ export default function VoiceAssistanceDialog({ intent }: Props) {
       const msg =
         'Would you like Voice Assistance during authentication? Voice Assistance helps users with motor disabilities enter information using voice while keeping sensitive information secure.'
       speakAndCaption(msg)
-      if (isVoiceEnabled) startListening()
+      if (isVoiceEnabled) {
+        pauseProcessing()
+        startListening()
+      }
     }
-  }, [step, isVoiceEnabled, startListening, speakAndCaption])
+  }, [step, isVoiceEnabled, startListening, speakAndCaption, pauseProcessing])
 
   useEffect(() => {
     if (step === 'enabled') {
       const timer = setTimeout(() => {
         speakAndCaption('Do you already have an account?')
         setStep('ask_account')
-        if (isVoiceEnabled) startListening()
+        if (isVoiceEnabled) {
+          pauseProcessing()
+          startListening()
+        }
       }, 1800)
       return () => clearTimeout(timer)
     }
-  }, [step, isVoiceEnabled, startListening, speakAndCaption])
+  }, [step, isVoiceEnabled, startListening, speakAndCaption, pauseProcessing])
 
   useEffect(() => {
     if (navigatedRef.current || !transcript) return

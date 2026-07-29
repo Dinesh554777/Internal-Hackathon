@@ -1,6 +1,6 @@
 import { motion, AnimatePresence } from 'framer-motion'
 import { useNavigate } from 'react-router-dom'
-import { useEffect, useState, useRef, useCallback } from 'react'
+import { useEffect, useState, useRef, useCallback, type ReactNode } from 'react'
 import { useVoice } from '@/context/VoiceContext'
 import { authService } from '@/services/auth'
 
@@ -18,7 +18,7 @@ type SignupStep =
 interface AuthMethods {
   label: string
   value: 'google' | 'magic_link' | 'password'
-  icon: JSX.Element
+  icon: ReactNode
   comingSoon?: boolean
 }
 
@@ -81,31 +81,52 @@ const AUTH_METHODS: AuthMethods[] = [
   },
 ]
 
-const WORD_TO_NUMBER: Record<string, string> = {
-  zero: '0',
-  one: '1',
-  two: '2',
-  three: '3',
-  four: '4',
-  five: '5',
-  six: '6',
-  seven: '7',
-  eight: '8',
-  nine: '9',
-  ten: '10',
-}
-
 function normalizeEmailTranscript(text: string): string {
-  let t = text.toLowerCase().trim()
-  t = t.replace(/\bat\b/g, '@')
-  t = t.replace(/\bdot\b/g, '.')
-  t = t.replace(/\bunderscore\b/g, '_')
-  t = t.replace(/\bdash\b/g, '-')
-  t = t.replace(/\bhyphen\b/g, '-')
-  t = t.replace(/\bplus\b/g, '+')
-  t = t.replace(/\bspace\b/g, '')
+  let t = text.trim()
+
+  const fillerPattern =
+    /\b(please|the|uh|um|like|i said|it'?s|that'?s|actually|maybe)\b/gi
+  t = t.replace(fillerPattern, '')
+
+  t = t.replace(/\s*at\s*/gi, '@')
+  t = t.replace(/\s*dot\s*/gi, '.')
+  t = t.replace(/\bunderscore\b/gi, '_')
+  t = t.replace(/\bdash\b/gi, '-')
+  t = t.replace(/\bhyphen\b/gi, '-')
+  t = t.replace(/\bplus\b/gi, '+')
+  t = t.replace(/\bats\b/gi, '@')
+  t = t.replace(/\bat the rate\b/gi, '@')
+  t = t.replace(/\bspace\b/gi, '')
+
+  t = t.toLowerCase()
+
+  t = t.replace(/\s+/g, '')
+
   t = t.replace(/[^a-z0-9@._%+\-]/g, '')
-  if (!t.includes('@')) t = t.replace(/\s/g, '')
+
+  if (!t.includes('@')) {
+    const domainMatch = t.match(
+      /([a-z0-9._%+\-]+)((?:gmail|yahoo|hotmail|outlook|proton|icloud|aol|zoho|yandex)\.(?:com|in|co\.uk|org|net|edu))\b/i
+    )
+    if (domainMatch) {
+      const local = domainMatch[1].replace(/at$/, '')
+      t = `${local}@${domainMatch[2]}`
+    } else {
+      const genericMatch = t.match(
+        /([a-z0-9._%+\-]+)([a-z0-9.-]+\.(?:com|in|co\.uk|org|net|edu|io|ai))\b/i
+      )
+      if (genericMatch) {
+        const local = genericMatch[1].replace(/at$/, '')
+        const atIdx = local.indexOf('at')
+        if (atIdx > 0 && atIdx === local.length - 2) {
+          t = `${local.slice(0, -2)}@${genericMatch[2]}`
+        } else {
+          return t
+        }
+      }
+    }
+  }
+
   return t
 }
 
@@ -120,7 +141,14 @@ function normalizeNameTranscript(text: string): string {
 
 export default function VoiceSignupWizard() {
   const navigate = useNavigate()
-  const { startListening, stopListening, transcript, speak } = useVoice()
+  const {
+    startListening,
+    stopListening,
+    transcript,
+    speak,
+    pauseProcessing,
+    resumeProcessing,
+  } = useVoice()
 
   const [step, setStep] = useState<SignupStep>('welcome')
   const [captions, setCaptions] = useState('')
@@ -128,6 +156,12 @@ export default function VoiceSignupWizard() {
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [errorMsg, setErrorMsg] = useState('')
+
+  useEffect(() => {
+    return () => {
+      resumeProcessing()
+    }
+  }, [resumeProcessing])
 
   const captionsRef = useRef(captions)
   const stepRef = useRef(step)
@@ -160,10 +194,11 @@ export default function VoiceSignupWizard() {
   )
 
   const goToNameInput = useCallback(() => {
+    pauseProcessing()
     speakAndCaption('What is your full name? Please say your name clearly.')
     setStep('name_input')
     startListening()
-  }, [speakAndCaption, startListening])
+  }, [speakAndCaption, startListening, pauseProcessing])
 
   useEffect(() => {
     if (step === 'welcome') {
@@ -197,12 +232,13 @@ export default function VoiceSignupWizard() {
   }, [transcript, step, stopListening, speakAndCaption])
 
   const handleNameYes = useCallback(() => {
+    pauseProcessing()
     speakAndCaption(
       'What is your email address? You can say it like user at example dot com.'
     )
     setStep('email_input')
     startListening()
-  }, [speakAndCaption, startListening])
+  }, [speakAndCaption, startListening, pauseProcessing])
 
   const handleNameNo = useCallback(() => {
     setName('')
@@ -211,11 +247,12 @@ export default function VoiceSignupWizard() {
   }, [speakAndCaption, startListening])
 
   const handleEmailYes = useCallback(() => {
+    resumeProcessing()
     speakAndCaption(
       'Passwords cannot be spoken aloud for security. Please choose how you would like to set up your account.'
     )
     setStep('auth_method')
-  }, [speakAndCaption])
+  }, [speakAndCaption, resumeProcessing])
 
   const handleEmailNo = useCallback(() => {
     setEmail('')

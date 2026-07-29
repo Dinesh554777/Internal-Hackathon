@@ -7,19 +7,13 @@ import {
   profileFromCategory,
 } from '@/context/AccessibilityContext'
 import type { DisabilityCategory } from '@/types/accessibility'
-
-const PROFILE_TO_CATEGORY: Record<string, DisabilityCategory> = {
-  low_vision: 'low_vision',
-  hearing: 'hearing_impairment',
-  motor: 'motor_disability',
-  cognitive: 'cognitive_disability',
-}
+import type { ReactNode } from 'react'
 
 interface Profile {
   id: DisabilityCategory
   label: string
   description: string
-  icon: JSX.Element
+  icon: ReactNode
 }
 
 const PROFILES: Profile[] = [
@@ -125,10 +119,17 @@ const PROFILE_VOICE_MAP: Record<string, string[]> = {
 
 export default function AccessibilityProfileSetup() {
   const navigate = useNavigate()
-  const { startListening, stopListening, transcript, speak } = useVoice()
+  const {
+    startListening,
+    stopListening,
+    transcript,
+    speak,
+    pauseProcessing,
+    resumeProcessing,
+  } = useVoice()
   const { setProfile } = useAccessibility()
 
-  const [selected, setSelected] = useState<string | null>(null)
+  const [selected, setSelected] = useState<DisabilityCategory | null>(null)
   const [confirmed, setConfirmed] = useState(false)
   const [captions, setCaptions] = useState('')
   const navigatedRef = useRef(false)
@@ -142,10 +143,14 @@ export default function AccessibilityProfileSetup() {
   )
 
   useEffect(() => {
+    pauseProcessing()
     speakAndCaption(
       'Please select your accessibility profile. This helps us customize your experience. You can say the name of the profile, or click on it.'
     )
     startListening()
+    return () => {
+      resumeProcessing()
+    }
   }, [])
 
   useEffect(() => {
@@ -154,7 +159,7 @@ export default function AccessibilityProfileSetup() {
 
     for (const [profileId, keywords] of Object.entries(PROFILE_VOICE_MAP)) {
       if (keywords.some((kw) => t.includes(kw))) {
-        setSelected(profileId)
+        setSelected(profileId as DisabilityCategory)
         break
       }
     }
@@ -172,7 +177,7 @@ export default function AccessibilityProfileSetup() {
   }, [transcript, selected, confirmed])
 
   const handleSelect = useCallback(
-    (id: string) => {
+    (id: DisabilityCategory) => {
       const profile = PROFILES.find((p) => p.id === id)
       setSelected(id)
       speakAndCaption(
@@ -187,7 +192,8 @@ export default function AccessibilityProfileSetup() {
     setConfirmed(true)
     navigatedRef.current = true
     stopListening()
-    setProfile(profileFromCategory(selected as DisabilityCategory))
+    resumeProcessing()
+    setProfile(profileFromCategory(selected))
     speakAndCaption(
       'Welcome to InclusiveCart AI! Your accessibility profile has been set.'
     )
@@ -195,7 +201,14 @@ export default function AccessibilityProfileSetup() {
     setTimeout(() => {
       navigate('/', { replace: true })
     }, 2500)
-  }, [selected, stopListening, setDisability, navigate, speakAndCaption])
+  }, [
+    selected,
+    stopListening,
+    setProfile,
+    navigate,
+    speakAndCaption,
+    resumeProcessing,
+  ])
 
   if (confirmed) {
     return (

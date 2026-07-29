@@ -74,6 +74,8 @@ interface VoiceContextValue {
   selectClarificationOption: (option: ClarificationOption) => void
   setAssistantContext: (ctx: Partial<AssistantContext>) => void
   setFailedAttempts: (n: number) => void
+  pauseProcessing: () => void
+  resumeProcessing: () => void
 }
 
 const VoiceContext = createContext<VoiceContextValue | null>(null)
@@ -126,6 +128,7 @@ export function VoiceProvider({ children }: { children: ReactNode }) {
   )
   const lastProcessedRef = useRef('')
   const isProcessingRef = useRef(false)
+  const processingPausedRef = useRef(false)
   const lastSpeechTimeRef = useRef(0)
 
   useEffect(() => {
@@ -249,6 +252,11 @@ export function VoiceProvider({ children }: { children: ReactNode }) {
         setTranscript(trimmed)
         setConfidence(conf)
         setInterimText('')
+
+        if (processingPausedRef.current) {
+          return
+        }
+
         addMessage('user', trimmed)
         addContextMemory('user', trimmed)
         setStatusPhase('understanding')
@@ -636,6 +644,7 @@ export function VoiceProvider({ children }: { children: ReactNode }) {
       ? crypto.randomUUID()
       : `${Date.now()}-${Math.random().toString(36).slice(2)}`
     isProcessingRef.current = false
+    processingPausedRef.current = false
     lastProcessedRef.current = ''
     lastSpeechTimeRef.current = 0
     setState('idle')
@@ -734,6 +743,12 @@ export function VoiceProvider({ children }: { children: ReactNode }) {
     setAssistantContext: (ctx: Partial<AssistantContext>) =>
       setAssistantCtx((prev) => ({ ...prev, ...ctx })),
     setFailedAttempts,
+    pauseProcessing: () => {
+      processingPausedRef.current = true
+    },
+    resumeProcessing: () => {
+      processingPausedRef.current = false
+    },
   }
 
   return <VoiceContext.Provider value={value}>{children}</VoiceContext.Provider>

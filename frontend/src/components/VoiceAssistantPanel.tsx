@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect } from 'react'
-import { motion } from 'framer-motion'
+import { motion, AnimatePresence } from 'framer-motion'
 import {
   Mic,
   Volume2,
@@ -21,10 +21,37 @@ import { useAccessibility } from '@/context/AccessibilityContext'
 import type { VoiceStatusPhase } from '@/types/voice'
 
 export function VoiceAssistantFAB() {
-  const { isPanelOpen, openPanel, state } = useVoice()
+  const { isPanelOpen, openPanel, state, toggleListening } = useVoice()
   const { areLargeButtons } = useAccessibility()
 
   if (isPanelOpen) return null
+
+  const getFabStyle = () => {
+    switch (state) {
+      case 'listening':
+        return 'bg-gradient-to-r from-red-500 to-rose-500 shadow-red-500/40 animate-pulse'
+      case 'processing':
+      case 'executing':
+        return 'bg-gradient-to-r from-amber-500 to-orange-500 shadow-amber-500/40'
+      case 'speaking':
+        return 'bg-gradient-to-r from-blue-500 to-cyan-500 shadow-blue-500/40'
+      case 'error':
+        return 'bg-gradient-to-r from-red-500 to-red-600 shadow-red-500/40'
+      default:
+        return 'bg-gradient-to-r from-blue-500 to-cyan-500 shadow-lg'
+    }
+  }
+
+  const handleClick = () => {
+    if (state === 'idle' || state === 'completed' || state === 'error') {
+      toggleListening()
+      openPanel()
+    } else if (state === 'listening') {
+      toggleListening()
+    } else {
+      openPanel()
+    }
+  }
 
   return (
     <motion.button
@@ -32,17 +59,52 @@ export function VoiceAssistantFAB() {
       animate={{ scale: 1 }}
       whileHover={{ scale: 1.1 }}
       whileTap={{ scale: 0.9 }}
-      onClick={openPanel}
-      className={`fixed bottom-6 right-6 z-50 flex items-center justify-center rounded-full bg-gradient-to-r from-blue-500 to-cyan-500 text-white shadow-lg hover:shadow-xl ${
+      onClick={handleClick}
+      className={`fixed bottom-6 right-6 z-50 flex items-center justify-center rounded-full text-white shadow-lg hover:shadow-xl transition-shadow ${getFabStyle()} ${
         areLargeButtons ? 'h-16 w-16' : 'h-14 w-14'
       }`}
-      aria-label="Open voice assistant"
+      aria-label={
+        state === 'listening' ? 'Stop listening' : 'Open voice assistant'
+      }
     >
-      <Mic className={areLargeButtons ? 'h-7 w-7' : 'h-6 w-6'} />
+      <AnimatePresence mode="wait">
+        {state === 'listening' && (
+          <motion.div
+            key="listening"
+            initial={{ opacity: 0, scale: 0.5 }}
+            animate={{ opacity: 1, scale: 1 }}
+            exit={{ opacity: 0, scale: 0.5 }}
+            className="flex items-center justify-center"
+          >
+            <Square
+              className={`${areLargeButtons ? 'h-5 w-5' : 'h-4 w-4'} fill-white`}
+            />
+          </motion.div>
+        )}
+        {state !== 'listening' && (
+          <motion.div
+            key="mic"
+            initial={{ opacity: 0, scale: 0.5 }}
+            animate={{ opacity: 1, scale: 1 }}
+            exit={{ opacity: 0, scale: 0.5 }}
+          >
+            <Mic className={areLargeButtons ? 'h-7 w-7' : 'h-6 w-6'} />
+          </motion.div>
+        )}
+      </AnimatePresence>
       {state === 'listening' && (
-        <span className="absolute -top-1 -right-1 flex h-4 w-4">
-          <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-emerald-400 opacity-75" />
-          <span className="relative inline-flex h-4 w-4 rounded-full bg-emerald-500" />
+        <>
+          <span className="absolute -top-1 -right-1 flex h-4 w-4">
+            <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-red-400 opacity-75" />
+            <span className="relative inline-flex h-4 w-4 rounded-full bg-red-500" />
+          </span>
+          <span className="absolute inset-0 rounded-full bg-red-500/20 animate-ping" />
+        </>
+      )}
+      {state === 'speaking' && (
+        <span className="absolute -bottom-1 -right-1 flex h-3 w-3">
+          <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-blue-400 opacity-75" />
+          <span className="relative inline-flex h-3 w-3 rounded-full bg-blue-500" />
         </span>
       )}
     </motion.button>
