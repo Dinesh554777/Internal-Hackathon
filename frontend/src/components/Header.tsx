@@ -1,7 +1,6 @@
-import { useState, useEffect, useRef } from 'react'
+import { useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import {
-  Search,
   ShoppingCart,
   Heart,
   User,
@@ -15,7 +14,7 @@ import { useCartStore } from '@/store/cartStore'
 import { useAuthStore } from '@/store/authStore'
 import { useAuth } from '@/hooks/useAuth'
 import { ModeToggle } from '@/components/ModeToggle'
-import { useProductSuggestions } from '@/hooks/useProducts'
+import VoiceSearchBar from '@/components/VoiceSearchBar'
 
 export default function Header() {
   const navigate = useNavigate()
@@ -23,30 +22,6 @@ export default function Header() {
   const { user, isAuthenticated } = useAuthStore()
   const { logout } = useAuth()
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
-  const [searchQuery, setSearchQuery] = useState('')
-  const [showSuggestions, setShowSuggestions] = useState(false)
-  const searchRef = useRef<HTMLFormElement>(null)
-
-  const { data: suggestions = [] } = useProductSuggestions(searchQuery)
-
-  useEffect(() => {
-    const handleClick = (e: MouseEvent) => {
-      if (searchRef.current && !searchRef.current.contains(e.target as Node)) {
-        setShowSuggestions(false)
-      }
-    }
-    document.addEventListener('mousedown', handleClick)
-    return () => document.removeEventListener('mousedown', handleClick)
-  }, [])
-
-  const handleSearch = (e: React.FormEvent) => {
-    e.preventDefault()
-    if (searchQuery.trim()) {
-      navigate(`/shop?q=${encodeURIComponent(searchQuery.trim())}`)
-      setShowSuggestions(false)
-      setSearchQuery('')
-    }
-  }
 
   const navLinks = [
     { to: '/shop', label: 'Shop' },
@@ -84,44 +59,12 @@ export default function Header() {
           </nav>
 
           <div className="hidden sm:block flex-1 max-w-md">
-            <form
-              onSubmit={handleSearch}
-              className="relative"
-              ref={searchRef as React.RefObject<HTMLFormElement>}
-            >
-              <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-zinc-400" />
-              <input
-                type="text"
-                value={searchQuery}
-                onChange={(e) => {
-                  setSearchQuery(e.target.value)
-                  setShowSuggestions(true)
-                }}
-                onFocus={() => setShowSuggestions(true)}
-                placeholder="Search products..."
-                className="w-full rounded-full border border-zinc-200 bg-zinc-50 py-2 pl-9 pr-4 text-sm placeholder:text-zinc-400 focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500/20 dark:border-zinc-700 dark:bg-zinc-900 dark:placeholder:text-zinc-500"
-                aria-label="Search products"
-              />
-              {showSuggestions && suggestions.length > 0 && (
-                <div className="absolute top-full mt-1 w-full rounded-xl border border-zinc-200 bg-white p-2 shadow-lg dark:border-zinc-700 dark:bg-zinc-950">
-                  {suggestions.map((s, i) => (
-                    <button
-                      key={i}
-                      type="button"
-                      onClick={() => {
-                        navigate(`/shop?q=${encodeURIComponent(s)}`)
-                        setShowSuggestions(false)
-                        setSearchQuery('')
-                      }}
-                      className="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-sm text-zinc-600 transition-colors hover:bg-zinc-50 dark:text-zinc-400 dark:hover:bg-zinc-800"
-                    >
-                      <Search className="h-3.5 w-3.5 text-zinc-400" />
-                      <span>{s}</span>
-                    </button>
-                  ))}
-                </div>
-              )}
-            </form>
+            <VoiceSearchBar
+              onSearch={(query) =>
+                navigate(`/shop?q=${encodeURIComponent(query)}`)
+              }
+              placeholder="Search products..."
+            />
           </div>
 
           <div className="flex items-center gap-1">

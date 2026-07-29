@@ -1,4 +1,5 @@
-import { BrowserRouter, Routes, Route } from 'react-router-dom'
+import { useEffect } from 'react'
+import { BrowserRouter, Routes, Route, useNavigate } from 'react-router-dom'
 import MainLayout from '@/layouts/MainLayout'
 import AuthLayout from '@/layouts/AuthLayout'
 import DashboardLayout from '@/layouts/DashboardLayout'
@@ -12,6 +13,7 @@ import ScreenReaderAnnouncements from '@/components/ScreenReaderAnnouncements'
 import VoiceAssistantPanel, {
   VoiceAssistantFAB,
 } from '@/components/VoiceAssistantPanel'
+import { navigationController } from '@/services/navigationController'
 
 import Home from '@/pages/Home'
 import Shop from '@/pages/Shop'
@@ -40,6 +42,14 @@ import Cart from '@/pages/Cart'
 import Checkout from '@/pages/Checkout'
 import NotFound from '@/pages/NotFound'
 
+function AppInitializer() {
+  const navigate = useNavigate()
+  useEffect(() => {
+    navigationController.setNavigator(navigate)
+  }, [navigate])
+  return null
+}
+
 export default function App() {
   return (
     <ErrorBoundary>
@@ -48,6 +58,7 @@ export default function App() {
         <SkipNavigation />
         <ScreenReaderAnnouncements />
         <BrowserRouter>
+          <AppInitializer />
           <VoiceProvider>
             <VoiceAssistantPanel />
             <VoiceAssistantFAB />
