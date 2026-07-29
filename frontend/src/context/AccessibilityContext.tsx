@@ -1,8 +1,15 @@
-import { createContext, useContext, useEffect, useState } from 'react'
+import {
+  createContext,
+  useContext,
+  useEffect,
+  useState,
+  useCallback,
+} from 'react'
 import type {
   AccessibilityProfile,
   AccessibilityContextValue,
   FontSize,
+  ColorBlindType,
 } from '@/types/accessibility'
 
 const AccessibilityContext = createContext<AccessibilityContextValue | null>(
@@ -37,12 +44,17 @@ export function AccessibilityProvider({
 }) {
   const [profile, setProfileState] = useState<AccessibilityProfile | null>(null)
   const [isLoading, setIsLoading] = useState(true)
+  const [dyslexiaMode, setDyslexiaMode] = useState(false)
+  const [colorBlindMode, setColorBlindMode] = useState<ColorBlindType>('none')
 
   useEffect(() => {
     const stored = localStorage.getItem('accessibilityProfile')
     if (stored) {
       try {
-        setProfileState(JSON.parse(stored))
+        const parsed = JSON.parse(stored)
+        setProfileState(parsed)
+        setDyslexiaMode(parsed.dyslexiaMode ?? false)
+        setColorBlindMode(parsed.colorBlindMode ?? 'none')
       } catch {
         setProfileState(DEFAULT_PROFILE)
       }
@@ -50,31 +62,30 @@ export function AccessibilityProvider({
       const prefersReduced = window.matchMedia(
         '(prefers-reduced-motion: reduce)'
       ).matches
-      setProfileState({
-        ...DEFAULT_PROFILE,
-        reducedMotion: prefersReduced,
-      })
+      setProfileState({ ...DEFAULT_PROFILE, reducedMotion: prefersReduced })
     }
     setIsLoading(false)
   }, [])
 
-  const setProfile = (newProfile: AccessibilityProfile) => {
+  const setProfile = useCallback((newProfile: AccessibilityProfile) => {
     setProfileState(newProfile)
     localStorage.setItem('accessibilityProfile', JSON.stringify(newProfile))
-  }
+  }, [])
 
-  const updateProfile = (updates: Partial<AccessibilityProfile>) => {
-    setProfileState((prev) => {
-      if (!prev) return prev
-      const updated = { ...prev, ...updates }
-      localStorage.setItem('accessibilityProfile', JSON.stringify(updated))
-      return updated
-    })
-  }
+  const updateProfile = useCallback(
+    (updates: Partial<AccessibilityProfile>) => {
+      setProfileState((prev) => {
+        if (!prev) return prev
+        const updated = { ...prev, ...updates }
+        localStorage.setItem('accessibilityProfile', JSON.stringify(updated))
+        return updated
+      })
+    },
+    []
+  )
 
-  const getFontSizeClass = (): FontSize => {
-    return profile?.preferredFontSize || 'medium'
-  }
+  const getFontSizeClass = (): FontSize =>
+    profile?.preferredFontSize || 'medium'
 
   const value: AccessibilityContextValue = {
     profile,
@@ -88,20 +99,72 @@ export function AccessibilityProvider({
     isSimplifiedLayout: profile?.simplifiedLayout ?? false,
     areLargeButtons: profile?.largeButtons ?? false,
     areCaptionsEnabled: profile?.captionsEnabled ?? true,
+    isDyslexiaMode: dyslexiaMode,
+    colorBlindMode,
+    setDyslexiaMode: setDyslexiaMode,
+    setColorBlindMode: setColorBlindMode,
   }
+
+  const fontSizeClass =
+    value.fontSize === 'large'
+      ? 'text-lg'
+      : value.fontSize === 'xlarge'
+        ? 'text-xl'
+        : value.fontSize === 'small'
+          ? 'text-sm'
+          : ''
+
+  const colorBlindFilterMap: Record<ColorBlindType, string> = {
+    none: 'none',
+    protanopia: 'url(#protanopia)',
+    deuteranopia: 'url(#deuteranopia)',
+    tritanopia: 'url(#tritanopia)',
+    achromatopsia: 'url(#achromatopsia)',
+  }
+  const colorBlindFilter = colorBlindFilterMap[colorBlindMode]
 
   return (
     <AccessibilityContext.Provider value={value}>
+      <svg className="absolute h-0 w-0" aria-hidden="true">
+        <filter id="protanopia">
+          <feColorMatrix
+            type="matrix"
+            values="0.567,0.433,0,0,0  0.558,0.442,0,0,0  0,0.242,0.758,0,0  0,0,0,1,0"
+          />
+        </filter>
+        <filter id="deuteranopia">
+          <feColorMatrix
+            type="matrix"
+            values="0.625,0.375,0,0,0  0.7,0.3,0,0,0  0,0.3,0.7,0,0  0,0,0,1,0"
+          />
+        </filter>
+        <filter id="tritanopia">
+          <feColorMatrix
+            type="matrix"
+            values="0.95,0.05,0,0,0  0,0.433,0.567,0,0  0,0.475,0.525,0,0  0,0,0,1,0"
+          />
+        </filter>
+        <filter id="achromatopsia">
+          <feColorMatrix
+            type="matrix"
+            values="0.299,0.587,0.114,0,0  0.299,0.587,0.114,0,0  0.299,0.587,0.114,0,0  0,0,0,1,0"
+          />
+        </filter>
+      </svg>
       <div
-        className={`${value.isHighContrast ? 'high-contrast' : ''} ${value.isReducedMotion ? 'reduce-motion' : ''} ${value.isSimplifiedLayout ? 'simplified-layout' : ''} ${value.areLargeButtons ? 'large-buttons' : ''} ${
-          value.fontSize === 'large'
-            ? 'text-lg'
-            : value.fontSize === 'xlarge'
-              ? 'text-xl'
-              : value.fontSize === 'small'
-                ? 'text-sm'
-                : ''
-        }`}
+        className={[
+          value.isHighContrast ? 'high-contrast' : '',
+          value.isReducedMotion ? 'reduce-motion' : '',
+          value.isSimplifiedLayout ? 'simplified-layout' : '',
+          value.areLargeButtons ? 'large-buttons' : '',
+          dyslexiaMode ? 'dyslexia-mode' : '',
+          fontSizeClass,
+        ]
+          .filter(Boolean)
+          .join(' ')}
+        style={
+          colorBlindMode !== 'none' ? { filter: colorBlindFilter } : undefined
+        }
       >
         {children}
       </div>

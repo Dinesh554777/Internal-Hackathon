@@ -34,6 +34,9 @@ export interface AccessibilityProfile {
   updatedAt: string
 }
 
+export type ColorBlindType =
+  'none' | 'protanopia' | 'deuteranopia' | 'tritanopia' | 'achromatopsia'
+
 export interface AccessibilityContextValue {
   profile: AccessibilityProfile | null
   setProfile: (profile: AccessibilityProfile) => void
@@ -46,4 +49,8 @@ export interface AccessibilityContextValue {
   isSimplifiedLayout: boolean
   areLargeButtons: boolean
   areCaptionsEnabled: boolean
+  isDyslexiaMode: boolean
+  colorBlindMode: ColorBlindType
+  setDyslexiaMode: (enabled: boolean) => void
+  setColorBlindMode: (mode: ColorBlindType) => void
 }

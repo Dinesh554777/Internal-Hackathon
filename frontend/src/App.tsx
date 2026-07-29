@@ -5,6 +5,8 @@ import DashboardLayout from '@/layouts/DashboardLayout'
 import { ProtectedRoute } from '@/components/ProtectedRoute'
 import { ErrorBoundary } from '@/components/ErrorBoundary'
 import { AccessibilityProvider } from '@/context/AccessibilityContext'
+import SkipNavigation from '@/components/SkipNavigation'
+import ScreenReaderAnnouncements from '@/components/ScreenReaderAnnouncements'
 import Home from '@/pages/Home'
 import Welcome from '@/pages/Welcome'
 import Login from '@/pages/Login'
@@ -19,11 +21,15 @@ import Cart from '@/pages/Cart'
 import Checkout from '@/pages/Checkout'
 import ProductDetails from '@/pages/ProductDetails'
 import NotFound from '@/pages/NotFound'
+import AccessibilitySettings from '@/pages/AccessibilitySettings'
+import AccessibilityDashboard from '@/pages/AccessibilityDashboard'
 
 export default function App() {
   return (
     <ErrorBoundary>
       <AccessibilityProvider>
+        <SkipNavigation />
+        <ScreenReaderAnnouncements />
         <BrowserRouter>
           <Routes>
             <Route path="/" element={<Welcome />} />
@@ -93,6 +99,11 @@ export default function App() {
               />
             </Route>
 
+            <Route path="/accessibility" element={<AccessibilitySettings />} />
+            <Route
+              path="/accessibility/dashboard"
+              element={<AccessibilityDashboard />}
+            />
             <Route path="*" element={<NotFound />} />
           </Routes>
         </BrowserRouter>

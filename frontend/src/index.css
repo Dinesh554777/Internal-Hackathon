@@ -11,7 +11,18 @@
     @apply antialiased;
   }
   :focus-visible {
-    @apply outline-2 outline-offset-2 outline-zinc-500;
+    @apply outline-2 outline-offset-2 outline-zinc-500 outline;
+  }
+  :focus:not(:focus-visible) {
+    @apply outline-none;
+  }
+  a,
+  button,
+  input,
+  select,
+  textarea,
+  [tabindex]:not([tabindex='-1']) {
+    @apply focus-visible:ring-2 focus-visible:ring-zinc-400 focus-visible:ring-offset-2 focus-visible:outline-none dark:focus-visible:ring-zinc-500;
   }
 }
 
@@ -35,6 +46,14 @@
     text-underline-offset: 2px;
   }
 
+  .high-contrast img {
+    filter: contrast(1.2) brightness(0.9);
+  }
+
+  .high-contrast .dark img {
+    filter: contrast(1.3) brightness(1.1);
+  }
+
   .reduce-motion *,
   .reduce-motion *::before,
   .reduce-motion *::after {
@@ -53,6 +72,34 @@
   .simplified-layout .complex-grid,
   .simplified-layout [data-complex] {
     display: none;
+  }
+
+  .dyslexia-mode {
+    --dyslexia-font: 'OpenDyslexic', 'Lexend', 'Verdana', sans-serif;
+    --dyslexia-letter-spacing: 0.05em;
+    --dyslexia-word-spacing: 0.16em;
+    --dyslexia-line-height: 1.8;
+  }
+
+  .dyslexia-mode body,
+  .dyslexia-mode p,
+  .dyslexia-mode h1,
+  .dyslexia-mode h2,
+  .dyslexia-mode h3,
+  .dyslexia-mode h4,
+  .dyslexia-mode h5,
+  .dyslexia-mode h6,
+  .dyslexia-mode span,
+  .dyslexia-mode li,
+  .dyslexia-mode a,
+  .dyslexia-mode label,
+  .dyslexia-mode input,
+  .dyslexia-mode textarea,
+  .dyslexia-mode select {
+    font-family: var(--dyslexia-font) !important;
+    letter-spacing: var(--dyslexia-letter-spacing) !important;
+    word-spacing: var(--dyslexia-word-spacing) !important;
+    line-height: var(--dyslexia-line-height) !important;
   }
 
   .sr-only {
@@ -76,5 +123,10 @@
     overflow: visible;
     clip: auto;
     white-space: normal;
+  }
+
+  @font-face {
+    font-family: 'OpenDyslexic';
+    src: local('OpenDyslexic'), local('Lexend'), local('Verdana');
   }
 }
