@@ -30,6 +30,8 @@ import AuthMagicVerify from '@/pages/AuthMagicVerify'
 import AuthGoogle from '@/pages/AuthGoogle'
 import AuthGoogleCallback from '@/pages/AuthGoogleCallback'
 import CreateAccount from '@/pages/CreateAccount'
+import VoiceSignupWizard from '@/pages/VoiceSignupWizard'
+import AccessibilityProfileSetup from '@/pages/AccessibilityProfileSetup'
 import AccessibilitySettings from '@/pages/AccessibilitySettings'
 import AccessibilityDashboard from '@/pages/AccessibilityDashboard'
 import Categories from '@/pages/Categories'
@@ -78,6 +80,7 @@ export default function App() {
               />
               <Route path="/register/standard" element={<Register />} />
               <Route path="/register/voice" element={<CreateAccount />} />
+              <Route path="/signup/voice" element={<VoiceSignupWizard />} />
 
               <Route element={<AuthLayout />}>
                 <Route path="/auth/standard-login" element={<Login />} />
@@ -144,6 +147,10 @@ export default function App() {
                 />
               </Route>
 
+              <Route
+                path="/accessibility-profile"
+                element={<AccessibilityProfileSetup />}
+              />
               <Route
                 path="/accessibility"
                 element={<AccessibilitySettings />}
